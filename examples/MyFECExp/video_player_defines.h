@@ -1,0 +1,46 @@
+
+#ifndef MODULES_VIDEO_PLAYER_DEFINES_H_
+#define MODULES_VIDEO_PLAYER_DEFINES_H_
+
+#include "api/video/video_frame.h"
+#include "common_video/libyuv/include/webrtc_libyuv.h"
+
+namespace webrtc {
+
+struct VideoPlayerCapability {
+  int32_t width;
+  int32_t height;
+  int32_t maxFPS;
+  VideoType videoType;
+  bool interlaced;
+
+  VideoPlayerCapability() {
+    width = 0;
+    height = 0;
+    maxFPS = 0;
+    videoType = VideoType::kUnknown;
+    interlaced = false;
+  }
+  bool operator!=(const VideoPlayerCapability& other) const {
+    if (width != other.width)
+      return true;
+    if (height != other.height)
+      return true;
+    if (maxFPS != other.maxFPS)
+      return true;
+    if (videoType != other.videoType)
+      return true;
+    if (interlaced != other.interlaced)
+      return true;
+    return false;
+  }
+  bool operator==(const VideoPlayerCapability& other) const {
+    return !operator!=(other);
+  }
+};
+
+}  //namespace webrtc
+
+
+
+#endif  // MODULES_VIDEO_PLAYER_DEFINES_H_

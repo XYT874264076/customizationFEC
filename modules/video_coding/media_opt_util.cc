@@ -14,6 +14,7 @@
 
 #include <algorithm>
 #include <memory>
+#include <iostream>
 
 #include "api/field_trials_view.h"
 #include "modules/video_coding/fec_rate_table.h"
@@ -122,6 +123,10 @@ bool VCMNackFecMethod::ProtectionFactor(
 
     // When in Hybrid mode (RTT range), adjust FEC rates based on the
     // RTT (NACK effectiveness) - adjustment factor is in the range [0,1].
+    
+    //TODO:Here Set the FEC rate!
+    // std::cout<<"Current RTT:"<<parameters->rtt<<" "<<"lowRTT"<<_lowRttNackMs<<std::endl;
+    // std::cout<<"We Set protectionFactorD as "<<_protectionFactorD<<std::endl;
   } else if (_highRttNackMs == -1 || parameters->rtt < _highRttNackMs) {
     // TODO(mikhal): Disabling adjustment temporarily.
     // uint16_t rttIndex = (uint16_t) parameters->rtt;
@@ -133,6 +138,9 @@ bool VCMNackFecMethod::ProtectionFactor(
         adjustRtt * rtc::saturated_cast<float>(_protectionFactorD));
     // update FEC rates after applying adjustment
     VCMFecMethod::UpdateProtectionFactorD(_protectionFactorD);
+
+    // std::cout<<"Current RTT:"<<parameters->rtt<<" "<<"highRTT"<<_highRttNackMs<<std::endl;
+    // std::cout<<"We Set protectionFactorD as "<<_protectionFactorD<<std::endl;
   }
 
   return true;
@@ -162,6 +170,11 @@ int VCMNackFecMethod::ComputeMaxFramesFec(
   if (max_frames_fec > kUpperLimitFramesFec) {
     max_frames_fec = kUpperLimitFramesFec;
   }
+
+  // TODO:Here we get the parameters.
+  // std::cout<<"Current RTT:"<<parameters->rtt<<std::endl;
+  // std::cout<<"Current FrameRate:"<<base_layer_framerate<<std::endl;
+
   return max_frames_fec;
 }
 
@@ -208,6 +221,10 @@ bool VCMNackFecMethod::UpdateParameters(
   ProtectionFactor(parameters);
   EffectivePacketLoss(parameters);
   _maxFramesFec = ComputeMaxFramesFec(parameters);
+
+  // TODO: Here we get the maxFrameFEC
+  // std::cout<<"Current maxFramesFec:"<<_maxFramesFec<<std::endl;
+
   if (BitRateTooLowForFec(parameters)) {
     _protectionFactorK = 0;
     _protectionFactorD = 0;

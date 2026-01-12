@@ -20,6 +20,8 @@
 #include <string>
 #include <type_traits>
 #include <utility>
+#include <iostream>
+#include <fstream>
 
 #include "absl/algorithm/container.h"
 #include "absl/container/inlined_vector.h"
@@ -71,6 +73,8 @@
 #include "rtc_base/strings/string_builder.h"
 #include "rtc_base/time_utils.h"
 #include "rtc_base/trace_event.h"
+// #include "examples/MyFECExp/Params.h"
+#include "examples/customizationFEC/Params.h"
 
 namespace cricket {
 
@@ -2502,6 +2506,9 @@ WebRtcVideoSendChannel::WebRtcVideoSendStream::GetPerLayerVideoSenderInfos(
       info.fraction_lost = stream_stats.report_block_data->fraction_lost();
       info.report_block_datas.push_back(*stream_stats.report_block_data);
     }
+    if (stream_stats.fec_report_block_data.has_value()) {
+      info.fec_report_block_datas.push_back(*stream_stats.fec_report_block_data);
+    }
     info.qp_sum = stream_stats.qp_sum;
     info.total_encode_time_ms = stream_stats.total_encode_time_ms;
     info.total_encoded_bytes_target = stream_stats.total_encoded_bytes_target;
@@ -3671,6 +3678,13 @@ void WebRtcVideoReceiveChannel::WebRtcVideoReceiveStream::StopReceiveStream() {
 void WebRtcVideoReceiveChannel::WebRtcVideoReceiveStream::OnFrame(
     const webrtc::VideoFrame& frame) {
   webrtc::MutexLock lock(&sink_lock_);
+
+  // auto now = std::chrono::system_clock::now();
+  // auto milliseconds_since_epoch = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
+  // int64_t delay = rtc::TimeMicros() - frame.timestamp_us();
+
+  // std::ofstream frameReceiver(inputV::Params::output+"frame_receiver.csv",std::ios::app);
+  // frameReceiver<<milliseconds_since_epoch<<","<<delay<<"\n";
 
   int64_t time_now_ms = rtc::TimeMillis();
   if (first_frame_timestamp_ < 0)

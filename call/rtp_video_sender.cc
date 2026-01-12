@@ -20,6 +20,8 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <iostream>
+#include <fstream>
 
 #include "absl/algorithm/container.h"
 #include "absl/strings/match.h"
@@ -60,14 +62,22 @@
 #include "modules/rtp_rtcp/source/rtp_sender.h"
 #include "modules/rtp_rtcp/source/rtp_sender_video.h"
 #include "modules/rtp_rtcp/source/rtp_sequence_number_map.h"
-#include "modules/rtp_rtcp/source/ulpfec_generator.h"
-#include "modules/rtp_rtcp/source/video_fec_generator.h"
+// #include "examples/MyFECExp/UlpFEC/ulpfec_generator.h"
+// #include "examples/MyFECExp/RS_FEC/RSfec_generator.h"
+// #include "examples/MyFECExp/video_fec_generator.h"
+// #include "examples/MyFECExp/RS_FEC/StreamRSfec_generator.h"
+#include "examples/customizationFEC/UlpFEC/ulpfec_generator.h"
+#include "examples/customizationFEC/RS_FEC/RSfec_generator.h"
+#include "examples/customizationFEC/video_fec_generator.h"
+#include "examples/customizationFEC/RS_FEC/StreamRSfec_generator.h"
 #include "modules/video_coding/include/video_codec_interface.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/numerics/safe_conversions.h"
 #include "rtc_base/synchronization/mutex.h"
 #include "rtc_base/trace_event.h"
+// #include "examples/MyFECExp/Params.h"
+#include "examples/customizationFEC/Params.h"
 
 namespace webrtc {
 
@@ -212,8 +222,22 @@ std::unique_ptr<VideoFecGenerator> MaybeCreateFecGenerator(
              !ShouldDisableRedAndUlpfec(/*flexfec_enabled=*/false, rtp,
                                         env.field_trials())) {
     // Flexfec not configured, but ulpfec is and is not disabled.
-    return std::make_unique<UlpfecGenerator>(env, rtp.ulpfec.red_payload_type,
-                                             rtp.ulpfec.ulpfec_payload_type);
+    if (inputV::Params::type == inputV::ExpType::WebRTCSource){
+      return std::make_unique<UlpfecGenerator>(env, rtp.ulpfec.red_payload_type, rtp.ulpfec.ulpfec_payload_type);
+    }
+    else if (inputV::Params::type == inputV::ExpType::RSFECBlock){
+      return std::make_unique<RSfecGenerator>(env, rtp.ulpfec.red_payload_type, rtp.ulpfec.ulpfec_payload_type);
+    }
+    else if (inputV::Params::type == inputV::ExpType::RSFECStreamStableRate || inputV::Params::type == inputV::ExpType::RSFECStreamSourceRate || 
+             inputV::Params::type == inputV::ExpType::RLSRSFEC) {
+      return std::make_unique<StreamRSfecGenerator>(env, rtp.ulpfec.red_payload_type, rtp.ulpfec.ulpfec_payload_type);
+    }
+    else if (inputV::Params::type == inputV::ExpType::FECClose) {
+      return nullptr;
+    }
+    else {
+      return std::make_unique<UlpfecGenerator>(env, rtp.ulpfec.red_payload_type, rtp.ulpfec.ulpfec_payload_type);
+    }
   }
 
   // Not a single FEC is given.
@@ -249,6 +273,7 @@ std::vector<RtpStreamSender> CreateRtpStreamSenders(
       observers.rtcp_type_observer;
   configuration.report_block_data_observer =
       observers.report_block_data_observer;
+  configuration.fec_report_block_data_ovserver = observers.fec_report_block_data_observer;
   configuration.paced_sender = transport->packet_sender();
   configuration.send_bitrate_observer = observers.bitrate_observer;
   configuration.send_packet_observer = observers.send_packet_observer;
@@ -942,6 +967,16 @@ int RtpVideoSender::ProtectionRequest(const FecProtectionParams* delta_params,
     *sent_nack_rate_bps +=
         send_bitrate[RtpPacketMediaType::kRetransmission].bps();
   }
+
+  //Write file!
+
+  auto now = std::chrono::system_clock::now();
+  auto milliseconds_since_epoch = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
+
+  std::ofstream rtpSenderFile(inputV::Params::output+"rtp_video_sender.csv",std::ios::app);
+  rtpSenderFile<<milliseconds_since_epoch<<","<<*sent_video_rate_bps<<","
+    <<*sent_nack_rate_bps<<","<<*sent_fec_rate_bps<<"\n";
+
   return 0;
 }
 

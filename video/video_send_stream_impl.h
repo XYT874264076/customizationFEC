@@ -42,7 +42,8 @@
 #include "video/config/video_encoder_config.h"
 #include "video/encoder_rtcp_feedback.h"
 #include "video/send_delay_stats.h"
-#include "video/send_statistics_proxy.h"
+// #include "examples/MyFECExp/InfoStats/send_statistics_proxy.h"
+#include "examples/customizationFEC/InfoStats/send_statistics_proxy.h"
 #include "video/video_stream_encoder_interface.h"
 
 namespace webrtc {

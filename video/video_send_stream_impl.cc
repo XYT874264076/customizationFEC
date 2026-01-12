@@ -77,7 +77,8 @@
 #include "video/encoder_rtcp_feedback.h"
 #include "video/frame_cadence_adapter.h"
 #include "video/send_delay_stats.h"
-#include "video/send_statistics_proxy.h"
+// #include "examples/MyFECExp/InfoStats/send_statistics_proxy.h"
+#include "examples/customizationFEC/InfoStats/send_statistics_proxy.h"
 #include "video/video_stream_encoder.h"
 #include "video/video_stream_encoder_interface.h"
 
@@ -336,6 +337,7 @@ RtpSenderObservers CreateObservers(RtcpRttStats* call_stats,
   observers.frame_count_observer = stats_proxy;
   observers.rtcp_type_observer = stats_proxy;
   observers.send_packet_observer = send_packet_observer;
+  observers.fec_report_block_data_observer = stats_proxy;
   return observers;
 }
 

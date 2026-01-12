@@ -34,8 +34,13 @@
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
 #include "modules/rtp_rtcp/source/rtp_packet_to_send.h"
 #include "modules/rtp_rtcp/source/rtp_sequence_number_map.h"
-#include "modules/rtp_rtcp/source/video_fec_generator.h"
+// #include "examples/MyFECExp/video_fec_generator.h"
+#include "examples/customizationFEC/video_fec_generator.h"
 #include "system_wrappers/include/ntp_time.h"
+// #include "examples/MyFECExp/Rtcp/FEC_statistics.h"
+// #include "examples/MyFECExp/Rtcp/FEC_report_block_data.h"
+#include "examples/customizationFEC/Rtcp/FEC_statistics.h"
+#include "examples/customizationFEC/Rtcp/FEC_report_block_data.h"
 
 namespace webrtc {
 
@@ -55,6 +60,7 @@ class RtpRtcpInterface : public RtcpFeedbackSenderInterface {
     bool receiver_only = false;
 
     ReceiveStatisticsProvider* receive_statistics = nullptr;
+    FecReceiveStatisticsProvider* fec_receive_statistics = nullptr;
 
     // Transport object that will be called when packets are ready to be sent
     // out on the network.
@@ -141,6 +147,8 @@ class RtpRtcpInterface : public RtcpFeedbackSenderInterface {
 
     // Enables send packet batching from the egress RTP sender.
     bool enable_send_packet_batching = false;
+    
+    FECReportBlockDataObserver* fec_report_block_data_ovserver = nullptr;
   };
 
   // Stats for RTCP sender reports (SR) for a specific SSRC.

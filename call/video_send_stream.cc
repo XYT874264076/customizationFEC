@@ -61,6 +61,13 @@ std::string VideoSendStream::StreamStats::ToString() const {
     ss << "max_ext_seq: "
        << report_block_data->extended_highest_sequence_number() << ", ";
   }
+  if (fec_report_block_data) {
+    ss << "lost_recover_fraction: " << fec_report_block_data->fixed_fraction_lost_recover() << ", ";
+    ss << "FEC_effective_rate: " << fec_report_block_data->fraction_effective_FEC_pkt() << ", ";
+    ss << "recover_delay: " << fec_report_block_data->fixed_average_recover_time() << ", ";
+    ss << "retransmit_delay: " << fec_report_block_data->fixed_average_retransmit_time() << ", ";
+    ss << "FEC_time_ahead: " << fec_report_block_data->fixed_time_ahead_for_recover() << ", ";
+  }
   ss << "nack: " << rtcp_packet_type_counts.nack_packets << ", ";
   ss << "fir: " << rtcp_packet_type_counts.fir_packets << ", ";
   ss << "pli: " << rtcp_packet_type_counts.pli_packets;

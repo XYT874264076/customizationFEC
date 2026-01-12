@@ -14,6 +14,9 @@
 
 #include <algorithm>
 #include <utility>
+#include <iostream>
+#include <chrono>
+#include <fstream>
 
 #include "absl/algorithm/container.h"
 #include "modules/include/module_common_types_public.h"
@@ -25,6 +28,8 @@
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/numerics/mod_ops.h"
+// #include "examples/MyFECExp/Params.h"
+#include "examples/customizationFEC/Params.h"
 
 namespace webrtc {
 
@@ -697,6 +702,28 @@ size_t ForwardErrorCorrection::AttemptRecovery(
       recovered_packets->sort(SortablePacket::LessThan());
       UpdateCoveringFecPackets(*recovered_packet_ptr);
       DiscardOldRecoveredPackets(recovered_packets);
+
+      //Write file!
+      auto now = std::chrono::system_clock::now();
+      auto milliseconds_since_epoch = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
+      std::ofstream fec(inputV::Params::output+"forward_error_correction.csv",std::ios::app);
+      std::string protect_seq_num="";
+      bool first=true;
+      for (const auto& protected_packet : (**fec_packet_it).protected_packets) {
+        if (first){
+          protect_seq_num=protect_seq_num+std::to_string(protected_packet->seq_num);
+          first=false;
+        }
+        else{
+          protect_seq_num=protect_seq_num+"_"+std::to_string(protected_packet->seq_num);
+        }
+      }
+
+      fec<<milliseconds_since_epoch<<","<<(**fec_packet_it).seq_num<<","<<"success"
+        <<","<<recovered_packet_ptr->seq_num<<","<<protect_seq_num<<"\n";
+
+      fec.close();
+
       fec_packet_it = received_fec_packets_.erase(fec_packet_it);
 
       // A packet has been recovered. We need to check the FEC list again, as
@@ -707,6 +734,28 @@ size_t ForwardErrorCorrection::AttemptRecovery(
                IsOldFecPacket(**fec_packet_it, recovered_packets)) {
       // Either all protected packets arrived or have been recovered, or the FEC
       // packet is old. We can discard this FEC packet.
+
+      //Write file!
+      auto now = std::chrono::system_clock::now();
+      auto milliseconds_since_epoch = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
+      std::ofstream fec(inputV::Params::output+"forward_error_correction.csv",std::ios::app);
+      std::string protect_seq_num="";
+      bool first=true;
+      for (const auto& protected_packet : (**fec_packet_it).protected_packets) {
+        if (first){
+          protect_seq_num=protect_seq_num+std::to_string(protected_packet->seq_num);
+          first=false;
+        }
+        else{
+          protect_seq_num=protect_seq_num+"_"+std::to_string(protected_packet->seq_num);
+        }
+      }
+
+      fec<<milliseconds_since_epoch<<","<<(**fec_packet_it).seq_num<<","<<"fail"
+        <<","<<","<<protect_seq_num<<"\n";
+      
+      fec.close();
+
       fec_packet_it = received_fec_packets_.erase(fec_packet_it);
     } else {
       fec_packet_it++;

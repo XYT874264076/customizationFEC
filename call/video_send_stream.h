@@ -38,6 +38,8 @@
 #include "modules/rtp_rtcp/include/rtcp_statistics.h"
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
 #include "video/config/video_encoder_config.h"
+// #include "examples/MyFECExp/Rtcp/FEC_report_block_data.h"
+#include "examples/customizationFEC/Rtcp/FEC_report_block_data.h"
 
 namespace webrtc {
 
@@ -88,6 +90,7 @@ class VideoSendStream {
     // A snapshot of the most recent Report Block with additional data of
     // interest to statistics. Used to implement RTCRemoteInboundRtpStreamStats.
     std::optional<ReportBlockData> report_block_data;
+    std::optional<FECReportBlockData> fec_report_block_data;
     double encode_frame_rate = 0.0;
     int frames_encoded = 0;
     std::optional<uint64_t> qp_sum;

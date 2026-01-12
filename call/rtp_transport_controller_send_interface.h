@@ -33,6 +33,8 @@
 #include "modules/rtp_rtcp/include/report_block_data.h"
 #include "modules/rtp_rtcp/include/rtcp_statistics.h"
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
+// #include "examples/MyFECExp/Rtcp/FEC_report_block_data.h"
+#include "examples/customizationFEC/Rtcp/FEC_report_block_data.h"
 
 namespace rtc {
 struct SentPacket;
@@ -58,6 +60,7 @@ struct RtpSenderObservers {
   FrameCountObserver* frame_count_observer;
   RtcpPacketTypeCounterObserver* rtcp_type_observer;
   SendPacketObserver* send_packet_observer;
+  FECReportBlockDataObserver* fec_report_block_data_observer;
 };
 
 struct RtpSenderFrameEncryptionConfig {

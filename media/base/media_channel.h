@@ -60,6 +60,8 @@
 #include "rtc_base/socket.h"
 #include "rtc_base/string_encode.h"
 #include "rtc_base/strings/string_builder.h"
+// #include "examples/MyFECExp/Rtcp/FEC_report_block_data.h"
+#include "examples/customizationFEC/Rtcp/FEC_report_block_data.h"
 
 namespace rtc {
 class Timing;
@@ -402,6 +404,7 @@ struct MediaSenderInfo {
   std::optional<bool> active;
   // https://w3c.github.io/webrtc-stats/#dom-rtcoutboundrtpstreamstats-totalpacketsenddelay
   webrtc::TimeDelta total_packet_send_delay = webrtc::TimeDelta::Zero();
+  std::vector<webrtc::FECReportBlockData> fec_report_block_datas;
 };
 
 struct MediaReceiverInfo {

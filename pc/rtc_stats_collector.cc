@@ -21,6 +21,7 @@
 #include <type_traits>
 #include <utility>
 #include <vector>
+#include <iostream>
 
 #include "absl/functional/bind_front.h"
 #include "absl/strings/string_view.h"
@@ -64,6 +65,8 @@
 #include "rtc_base/strings/string_builder.h"
 #include "rtc_base/time_utils.h"
 #include "rtc_base/trace_event.h"
+// #include "examples/MyFECExp/InfoStats/fecstats_objects.h"
+#include "examples/customizationFEC/InfoStats/fecstats_objects.h"
 
 namespace webrtc {
 
@@ -132,6 +135,16 @@ std::string RTCOutboundRtpStreamStatsIDFromSSRC(const std::string& transport_id,
   sb << 'O' << transport_id
      << (media_type == cricket::MEDIA_TYPE_AUDIO ? 'A' : 'V') << ssrc;
   return sb.str();
+}
+
+std::string RTCRemoteFECRtpStreamStatsIdFromSourceSsrc(
+  cricket::MediaType media_type,
+  uint32_t source_ssrc) {
+char buf[1024];
+rtc::SimpleStringBuilder sb(buf);
+sb << "RFEC" << (media_type == cricket::MEDIA_TYPE_AUDIO ? 'A' : 'V')
+   << source_ssrc;
+return sb.str();
 }
 
 std::string RTCRemoteInboundRtpStreamStatsIdFromSourceSsrc(
@@ -850,6 +863,45 @@ CreateOutboundRTPStreamStatsFromVideoSenderInfo(
     }
   }
   return outbound_video;
+}
+
+std::unique_ptr<RTCRemoteFECStats>
+ProduceRemoteFECStatsFromFECReportBlockData(
+  const std::string& transport_id,
+  const FECReportBlockData& fec_report_data,
+  cricket::MediaType media_type,
+  const std::map<std::string, RTCOutboundRtpStreamStats*>& outbound_rtps,
+  const RTCStatsReport& report,
+  const bool stats_timestamp_with_environment_clock) {
+
+  Timestamp arrival_timestamp = stats_timestamp_with_environment_clock
+                                    ? fec_report_data.report_block_timestamp()
+                                    : fec_report_data.report_block_timestamp_utc();
+  
+  auto remote_fec = std::make_unique<RTCRemoteFECStats>(
+    RTCRemoteFECRtpStreamStatsIdFromSourceSsrc(media_type, fec_report_data.source_ssrc()),arrival_timestamp);
+  remote_fec->ssrc = fec_report_data.source_ssrc();
+  remote_fec->kind = media_type == cricket::MEDIA_TYPE_AUDIO ? "audio" : "video";
+  remote_fec->fraction_lost_recover = fec_report_data.fraction_lost_recover_raw();
+  remote_fec->fixed_fraction_lost_recover = fec_report_data.fixed_fraction_lost_recover_raw();
+  remote_fec->fraction_effective_FEC_pkt = fec_report_data.fraction_effective_FEC_pkt_raw();
+  remote_fec->fixed_fraction_effective_FEC_pkt = fec_report_data.fixed_fraction_effective_FEC_pkt_raw();
+  remote_fec->fixed_average_recover_time = fec_report_data.fixed_average_recover_time();
+  remote_fec->fixed_average_retransmit_time = fec_report_data.fixed_average_retransmit_time();
+  remote_fec->fixed_time_ahead_for_recover = fec_report_data.fixed_time_ahead_for_recover();
+  remote_fec->average_recover_time = fec_report_data.average_recover_time();
+  remote_fec->average_retransmit_time = fec_report_data.average_retransmit_time();
+  remote_fec->time_ahead_for_recover = fec_report_data.time_ahead_for_recover();
+  remote_fec->recover_pkt_num_raw = fec_report_data.recover_pkt_num_raw();
+  remote_fec->cumulative_recover_pkt = fec_report_data.cumulative_recover_pkt();
+  remote_fec->retransmit_pkt_num_raw = fec_report_data.retransmit_pkt_num_raw();
+  remote_fec->cumulative_retransmit_pkt = fec_report_data.cumulative_retransmit_pkt();
+  remote_fec->both_succ_pkt_num_raw = fec_report_data.both_succ_pkt_num_raw();
+  remote_fec->cumulative_both_succ_pkt = fec_report_data.cumulative_both_succ_pkt();
+  remote_fec->burst_lost_num = fec_report_data.burst_lost_num_raw();
+  remote_fec->cumulative_burst_lost_num = fec_report_data.cumulative_burst_lost_num();
+
+  return remote_fec;
 }
 
 std::unique_ptr<RTCRemoteInboundRtpStreamStats>
@@ -1894,6 +1946,28 @@ void RTCStatsCollector::ProduceVideoRTPStreamStats_n(
           transport_id, report_block_data, cricket::MEDIA_TYPE_VIDEO,
           video_outbound_rtps, *report,
           stats_timestamp_with_environment_clock_));
+    }
+    // Try to produce fec_report_block_data!
+    for (const auto& fec_report_block_data: video_sender_info.fec_report_block_datas) {
+      // std::cout<<"Now I can try build stats class!"<<std::endl;
+      // std::cout<<"\t[info Data]"<<std::endl;
+      // std::cout<<"\tfixed_fraction_lost_recover_raw:"<<(int)fec_report_block_data.fixed_fraction_lost_recover_raw()<<std::endl;
+      // std::cout<<"\tfixed_fraction_effective_FEC_pkt_raw:"<<(int)fec_report_block_data.fixed_fraction_effective_FEC_pkt_raw()<<std::endl;
+      // std::cout<<"\trecover_pkt_num_raw:"<<fec_report_block_data.recover_pkt_num_raw()<<std::endl;
+      // std::cout<<"\taverage_recover_time:"<<fec_report_block_data.fixed_average_recover_time()<<std::endl;
+      // std::cout<<"\taverage_retransmit_time:"<<fec_report_block_data.fixed_average_retransmit_time()<<std::endl;
+      // std::cout<<"\ttime_ahead_for_recover:"<<fec_report_block_data.fixed_time_ahead_for_recover()<<std::endl;
+      // std::cout<<"\tretransmit_pkt_num_raw:"<<fec_report_block_data.retransmit_pkt_num_raw()<<std::endl;
+      // std::cout<<"\tboth_pkt_num:"<<fec_report_block_data.both_succ_pkt_num_raw()<<std::endl;
+      // std::cout<<"\tcumulative_recover_pkt:"<<fec_report_block_data.cumulative_recover_pkt()<<std::endl;
+      // std::cout<<"\tcumulative_retransmit_pkt:"<<fec_report_block_data.cumulative_retransmit_pkt()<<std::endl;
+      // std::cout<<"\tcumulative_both_succ_pkt:"<<fec_report_block_data.cumulative_both_succ_pkt()<<std::endl;
+      // std::cout<<std::endl;
+
+      report->AddStats(ProduceRemoteFECStatsFromFECReportBlockData(
+        transport_id, fec_report_block_data, cricket::MEDIA_TYPE_VIDEO,
+        video_outbound_rtps, *report,
+        stats_timestamp_with_environment_clock_));
     }
   }
 }

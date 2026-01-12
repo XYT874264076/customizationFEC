@@ -17,6 +17,9 @@
 #include <optional>
 #include <utility>
 #include <vector>
+#include <chrono>
+#include <iostream>
+#include <fstream>
 
 #include "api/array_view.h"
 #include "api/call/transport.h"
@@ -43,6 +46,8 @@
 #include "rtc_base/copy_on_write_buffer.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/task_utils/repeating_task.h"
+// #include "examples/MyFECExp/Params.h"
+#include "examples/customizationFEC/Params.h"
 
 namespace webrtc {
 namespace {
@@ -217,6 +222,31 @@ void RtpSenderEgress::SendPacket(std::unique_ptr<RtpPacketToSend> packet,
       fec_generator_->AddPacketAndGenerateFec(*packet);
     }
   }
+
+  //Write file!
+  auto nowtime = std::chrono::system_clock::now();
+  auto milliseconds_since_epoch = std::chrono::duration_cast<std::chrono::microseconds>(nowtime.time_since_epoch()).count();
+  std::fstream rtp_sender_egress(inputV::Params::output+"rtp_sender_egress.csv",std::ios::app);
+  rtp_sender_egress<<milliseconds_since_epoch<<","<<packet->SequenceNumber()<<","<<packet->payload_size()
+    <<","<<packet->is_key_frame()<<",";
+  if (packet->packet_type()==RtpPacketToSend::Type::kVideo){
+    rtp_sender_egress<<"VideoPacket"<<"\n";
+  }
+  else if (packet->packet_type()==RtpPacketToSend::Type::kRetransmission){
+    if (packet->retransmitted_sequence_number()){
+      rtp_sender_egress<<"Retransmission:"<<*packet->retransmitted_sequence_number()<<"\n";
+    }
+    else {
+      rtp_sender_egress<<"Retransmission:"<<"nullptr"<<"\n";
+    }
+  }
+  else if (packet->packet_type()==RtpPacketToSend::Type::kForwardErrorCorrection){
+    rtp_sender_egress<<"FECPacket"<<"\n";
+  }
+  else if (packet->packet_type()==RtpPacketToSend::Type::kPadding){
+    rtp_sender_egress<<"Padding"<<"\n";
+  }
+  rtp_sender_egress.close();
 
   // Bug webrtc:7859. While FEC is invoked from rtp_sender_video, and not after
   // the pacer, these modifications of the header below are happening after the

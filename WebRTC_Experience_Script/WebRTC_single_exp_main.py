@@ -16,7 +16,7 @@ def run_trace_replay(trace_file, net_type, net_device, duration, trace_log_file)
         f.write(result.stdout);
 
 def run_WebRTC_peer(namespace, exec_file, connect_to, port, playVideo, duration, interval, output_dir, exp_type, output_std, output_log, fec_rate, fec_num):
-    cmd = f"ip netns exec {namespace} bash -c 'export PULSE_SERVER=unix:/run/user/1000/pulse/native; export PULSE_COOKIE=/run/user/1000/pulse/cookie; \
+    cmd = f"xvfb-run -a ip netns exec {namespace} bash -c 'export PULSE_SERVER=unix:/tmp/pulse-native; \
             {exec_file} --playVideo {playVideo} --duration {duration} --interval {interval} --output {output_dir} \
             --type {exp_type} --connect {connect_to} --port {port} --FECRate {fec_rate} --FECNum {fec_num} --ifTrainI true --ifSaveI true --ifTrainM true --ifSaveM true'";
     print(cmd);

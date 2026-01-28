@@ -60,7 +60,8 @@
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
 #include "modules/rtp_rtcp/source/rtp_rtcp_impl2.h"
 #include "modules/rtp_rtcp/source/rtp_sender.h"
-#include "modules/rtp_rtcp/source/rtp_sender_video.h"
+// #include "modules/rtp_rtcp/source/rtp_sender_video.h"
+#include "examples/customizationFEC/rtp_sender_video.h"
 #include "modules/rtp_rtcp/source/rtp_sequence_number_map.h"
 // #include "examples/MyFECExp/UlpFEC/ulpfec_generator.h"
 // #include "examples/MyFECExp/RS_FEC/RSfec_generator.h"
@@ -68,6 +69,7 @@
 // #include "examples/MyFECExp/RS_FEC/StreamRSfec_generator.h"
 #include "examples/customizationFEC/UlpFEC/ulpfec_generator.h"
 #include "examples/customizationFEC/RS_FEC/RSfec_generator.h"
+#include "examples/customizationFEC/Tambur/TamburFecGenerator.h"
 #include "examples/customizationFEC/video_fec_generator.h"
 #include "examples/customizationFEC/RS_FEC/StreamRSfec_generator.h"
 #include "modules/video_coding/include/video_codec_interface.h"
@@ -234,6 +236,9 @@ std::unique_ptr<VideoFecGenerator> MaybeCreateFecGenerator(
     }
     else if (inputV::Params::type == inputV::ExpType::FECClose) {
       return nullptr;
+    }
+    else if (inputV::Params::type == inputV::ExpType::TamburFEC) {
+      return std::make_unique<TamburFecGenerator>(env, rtp.ulpfec.red_payload_type, rtp.ulpfec.ulpfec_payload_type);
     }
     else {
       return std::make_unique<UlpfecGenerator>(env, rtp.ulpfec.red_payload_type, rtp.ulpfec.ulpfec_payload_type);

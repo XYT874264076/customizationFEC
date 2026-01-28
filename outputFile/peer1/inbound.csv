@@ -1,0 +1,6 @@
+timestamp,jitter,packetLost,packetsReceived,bytesReceived,retransmittedPacketsReceived,retransmittedBytesReceived,jitterBufferDelay,jitterBufferEmittedCount,jitterBufferTargetDelay,jitterBufferMinimumDelay,framesReceived,frameWidth,frameHeight,framesPerSecond,framesDecoded,keyFramesDecoded,framesDropped,totalDecodeTime,totalInterFrameDelay,totalSquaredInterFrameDelay,freezeCount,totalFreezesDuration,pauseCount,totalPausesDuration,totalAssemblyTime,framesAssembledFromMultiplePackets,totalProcessingDelay,firCount,pliCount,nackCount,qpSum,minPlayoutDelay
+1769584257194608,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+1769584257294615,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+1769584257394615,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+1769584257494635,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+1769584257594652,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0

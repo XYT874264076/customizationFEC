@@ -23,7 +23,8 @@ enum ExpType{
   RSFECStreamStableRate,
   RSFECStreamSourceRate,
   RLSRSFEC,
-  FECClose
+  FECClose,
+  TamburFEC
 };
 
 class Params{
@@ -100,6 +101,9 @@ public:
         }
         else if (value=="FECClose"){
             type = ExpType::FECClose;
+        }
+        else if (value=="TamburFEC"){
+            type = ExpType::TamburFEC;
         }
         else {
             std::cerr<<"Warning: Unknown ExpType "<< value <<"! Still use WebRTCSource as default!" << std::endl;

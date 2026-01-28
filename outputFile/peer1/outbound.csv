@@ -1,0 +1,7 @@
+timestamp,packetsSent,bytesSent,retransmittedPacketsSent,retransmittedBytesSent,targetBitrate,framesEncoded,keyFramesEncoded,totalEncodeTime,totalEncodedBytesTarget,frameWidth,frameHeight,framesPerSecond,framesSent,totalPacketSendDelay,nackCount,qualityLimitationReason,qualityLimitationResolutionChanges,firCount,pliCount
+1769584257094555,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"none",0,0,0
+1769584257194608,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"none",0,0,0
+1769584257294615,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"bandwidth",0,0,0
+1769584257394615,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"bandwidth",0,0,0
+1769584257494635,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"bandwidth",0,0,0
+1769584257594652,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"bandwidth",0,0,0

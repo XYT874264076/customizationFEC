@@ -1,0 +1,2 @@
+timestamp,totalRoundTripTime,currentRoundTripTime,availableOutgoingBitrate,packetsSent,packetsReceived,bytesSent,bytesReceived
+1769584257594652,0.362,0.121,0,1,1,645,153

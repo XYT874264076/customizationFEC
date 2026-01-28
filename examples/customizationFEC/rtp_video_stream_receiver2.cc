@@ -44,6 +44,7 @@
 #include "modules/rtp_rtcp/source/rtp_rtcp_config.h"
 #include "examples/customizationFEC/UlpFEC/ulpfec_receiver.h"
 #include "examples/customizationFEC/RS_FEC/RSfec_receiver.h"
+#include "examples/customizationFEC/Tambur/TamburFecReceiver.h"
 #include "modules/rtp_rtcp/source/video_rtp_depacketizer.h"
 #include "modules/rtp_rtcp/source/video_rtp_depacketizer_raw.h"
 #include "modules/video_coding/h264_sprop_parameter_sets.h"
@@ -153,6 +154,9 @@ std::unique_ptr<fecReceiver> MaybeConstructfecReceiver(
   else if (inputV::Params::type == inputV::ExpType::RSFECBlock || inputV::Params::type == inputV::ExpType::RSFECStreamStableRate || 
             inputV::Params::type == inputV::ExpType::RSFECStreamSourceRate || inputV::Params::type == inputV::ExpType::RLSRSFEC){
     return std::make_unique<RSfecReceiver>(remote_ssrc, fec_payload_type, callback, clock);
+  }
+  else if (inputV::Params::type == inputV::ExpType::TamburFEC){
+    return std::make_unique<TamburFecReceiver>(remote_ssrc, fec_payload_type, callback, clock);
   }
   else if (inputV::Params::type == inputV::ExpType::FECClose){
     return std::make_unique<UlpfecReceiver>(remote_ssrc, fec_payload_type, callback, clock);

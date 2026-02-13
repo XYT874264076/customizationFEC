@@ -94,6 +94,9 @@ void TamburFecGenerator::SetProtectionParameters(
 
 void TamburFecGenerator::AddPacketAndGenerateFec(const RtpPacketToSend& packet) {
   // Store base packet template for creating FEC packets
+
+  printf("\t\t\t====TamburFecGenerator AddPacketAndGenerateFec\n");
+
   if (!base_packet_template_) {
     base_packet_template_ = std::make_unique<RtpPacketToSend>(packet);
     current_frame_timestamp_ = packet.Timestamp();

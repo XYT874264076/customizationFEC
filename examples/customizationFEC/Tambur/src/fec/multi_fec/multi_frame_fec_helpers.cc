@@ -99,19 +99,10 @@ pair<uint16_t, uint16_t> rows_of_frame(uint16_t frame_num, uint16_t delay,
 std::pair<uint16_t, uint16_t> cols_of_frame(uint16_t frame_num, uint16_t delay,
     CodingMatrixInfo codingMatrixInfo)
 {
-  printf("\t\t\t\t ==== frame_of_col\n");
-  printf("\t\t\t\t ==== frame_num: %d\n", frame_num);
-  printf("\t\t\t\t ==== delay: %d\n", delay);
-  printf("\t\t\t\t ==== codingMatrixInfo.n_cols: %d\n", codingMatrixInfo.n_cols);
-  printf("\t\t\t\t ==== codingMatrixInfo.n_rows: %d\n", codingMatrixInfo.n_rows);
   uint16_t frame_position = frame_num % num_frames_for_delay(delay);
   auto n_cols_per_frame = num_cols_per_frame(codingMatrixInfo, delay);
   uint16_t start = frame_position * n_cols_per_frame;
   uint16_t end = start + n_cols_per_frame - 1;
-  printf("\t\t\t\t ==== frame_position: %d\n", frame_position);
-  printf("\t\t\t\t ==== n_cols_per_frame: %d\n", n_cols_per_frame);
-  printf("\t\t\t\t ==== start: %d\n", start);
-  printf("\t\t\t\t ==== end: %d\n", end);
   return pair<uint16_t, uint16_t>{ start, end };
 }
 

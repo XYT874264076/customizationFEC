@@ -55,6 +55,18 @@
 #include "video/unique_timestamp_counter.h"
 #include "examples/customizationFEC/fec_receiver.h"
 #include "examples/customizationFEC/Rtcp/FEC_statistics.h"
+#include "examples/customizationFEC/Tambur/src/fec/fec_multi_receiver.hh"
+#include "examples/customizationFEC/Tambur/src/fec/multi_fec/multi_frame_fec_helpers.hh"
+#include "examples/customizationFEC/Tambur/src/fec/streaming_code/multi_fec_header_code.hh"
+#include "examples/customizationFEC/Tambur/src/fec/streaming_code/streaming_code.hh"
+#include "examples/customizationFEC/Tambur/src/fec/multi_fec/streaming_code_helper.hh"
+#include "examples/customizationFEC/Tambur/src/fec/quality_reporter.hh"
+#include "examples/customizationFEC/Tambur/src/fec/quality_reporting/simple_quality_report_generator.hh"
+#include "examples/customizationFEC/Tambur/src/fec/logger.hh"
+#include "examples/customizationFEC/Tambur/src/fec/logging/timing_logger.hh"
+#include "examples/customizationFEC/Tambur/src/fec/logging/frame_logger.hh"
+#include "examples/customizationFEC/Tambur/Tamburdecoder.hh"
+#include "examples/customizationFEC/Tambur/protocol.hh"
 
 namespace webrtc {
 
@@ -456,6 +468,37 @@ class RtpVideoStreamReceiver2 : public LossNotificationSender,
       Timestamp::MinusInfinity();
   bool sps_pps_idr_is_h264_keyframe_ = false;
   int last_corruption_detection_index_ = 0;
+
+    // Tambur FEC相关成员
+  void InitializeTamburFEC();
+  std::optional<Datagram> ConvertRtpToDatagram(
+      const RtpPacketReceived& rtp_packet) const;
+  bool ProcessTamburFECPacket(std::shared_ptr<const video_coding::PacketBuffer::Packet> packet, const RtpPacketReceived& rtp_packet);
+    void ProcessDecodedTamburFrame(const std::string& frame_data,
+                                   uint32_t rtp_timestamp,
+                                   const TamburDecoder::FrameInfo& frame_info,
+                                   const std::vector<std::shared_ptr<const webrtc::video_coding::PacketBuffer::Packet>>& packets,
+                                   const std::optional<std::shared_ptr<const webrtc::video_coding::PacketBuffer::Packet>>& first_packet,
+                                   const std::optional<std::shared_ptr<const webrtc::video_coding::PacketBuffer::Packet>>& last_packet);
+  
+    std::unique_ptr<TamburDecoder> tambur_decoder_
+        RTC_GUARDED_BY(packet_sequence_checker_);
+    std::unique_ptr<FECMultiReceiver> tambur_fec_receiver_
+        RTC_GUARDED_BY(packet_sequence_checker_);
+    std::unique_ptr<BlockCode> block_code_header_
+        RTC_GUARDED_BY(packet_sequence_checker_);
+    std::unique_ptr<BlockCode> block_code_fec_
+        RTC_GUARDED_BY(packet_sequence_checker_);
+    std::unique_ptr<MultiFECHeaderCode> tambur_header_code_
+        RTC_GUARDED_BY(packet_sequence_checker_);
+    std::unique_ptr<StreamingCode> tambur_code_
+        RTC_GUARDED_BY(packet_sequence_checker_);
+    std::unique_ptr<QualityReporter> tambur_quality_reporter_
+        RTC_GUARDED_BY(packet_sequence_checker_);
+
+    std::unique_ptr<Logger> logger_;
+    std::unique_ptr<FrameLogger> frameLogger_;
+    std::unique_ptr<TimingLogger> timingLogger_;
 };
 
 }  // namespace webrtc

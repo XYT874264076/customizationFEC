@@ -14,6 +14,17 @@ namespace inputV {
     bool Params::ifSaveI;
     bool Params::ifTrainM;
     bool Params::ifSaveM;
+
+    // Tambur parameters
+    uint16_t Params::tambur_tau;
+    int Params::tambur_stripe_size;
+    uint16_t Params::tambur_w;
+    int Params::tambur_max_data_stripes_per_frame;
+    int Params::tambur_max_fec_stripes_per_frame;
+    int Params::tambur_packet_size;
+    uint8_t Params::tambur_max_qr;
+    uint16_t Params::tambur_parity_delay;
+    uint8_t Params::tambur_num_qrs_no_reduce;
 } // namespace inputV
 
 namespace transV {

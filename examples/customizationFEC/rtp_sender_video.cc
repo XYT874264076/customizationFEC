@@ -59,6 +59,7 @@
 // #include "examples/MyFECExp/video_fec_generator.h"
 #include "examples/customizationFEC/video_fec_generator.h"
 #include "examples/customizationFEC/Params.h"
+#include "examples/customizationFEC/Tambur/protocol.hh"
 #include "examples/customizationFEC/Tambur/src/fec/fec_datagram.hh"
 #include "examples/customizationFEC/Tambur/src/fec/multi_fec/coding_matrix_info.hh"
 #include "examples/customizationFEC/Tambur/src/fec/multi_fec/block_code.hh"
@@ -225,6 +226,9 @@ void RTPSenderVideo::LogAndSendToNetwork(
     size_t encoder_output_size) {
   {
     MutexLock lock(&stats_mutex_);
+
+    // printf("\t\t\t Run LogAndSendToNetwork\n");
+
     size_t packetized_payload_size = 0;
     for (const auto& packet : packets) {
       if (*packet->packet_type() == RtpPacketMediaType::kVideo) {
@@ -540,7 +544,26 @@ bool RTPSenderVideo::SendVideo(int payload_type,
                                std::vector<uint32_t> csrcs) {
   RTC_CHECK_RUNS_SERIALIZED(&send_checker_);
 
-  printf("\t\t\t======Run RTPSenderVideo::SendVideo\n");
+  printf("\n\n\t\t\t======Run RTPSenderVideo::SendVideo\n");
+  // 输出 video_header 信息
+  printf("\t\t\t======video_header: width:%d   height:%d\n", video_header.width, video_header.height);
+  // 输出 payload 的前 128 字节，用十六进制输出，例如 AA BB CC 这样，每 32 字节一行
+  printf("\t\t\t======payload size: %zu\n", payload.size());
+  for (size_t i = 0; i < payload.size() && i < 128; i++) {
+    if (i % 32 == 0) {
+      printf("\n\t\t\t");
+    }
+    printf("%02X ", payload[i]);
+  }
+  printf("\n\t\t\t ... ... ...");
+  // 再输出 payload 的后 128 字节，同上
+  for (size_t i = payload.size() - 128; i < payload.size(); i++) {
+    if ((payload.size()-i) % 32 == 0) {
+      printf("\n\t\t\t");
+    }
+    printf("%02X ", payload[i]);
+  }
+  printf("\n");
 
   // Check if we should use Tambur FEC
   if (inputV::Params::type == inputV::ExpType::TamburFEC) {
@@ -963,21 +986,18 @@ bool RTPSenderVideo::SendVideoWithTamburFEC(
     TimeDelta expected_retransmission_time,
     std::vector<uint32_t> csrcs) {
 
-  printf("\t\t\t==== Now in Tambur mode!\n");
-
   // Initialize Tambur FEC components
-  if (!tambur_fec_sender_) {
-    printf("\t\t\t==== Initializing Tambur FEC components\n");
+  if (!tambur_encoder_) {
     
     // Get configuration parameters from WebRTC config
-    uint16_t tau = 3; // default FEC protection window size 
-    int stripe_size = 256; // default stripe size in bytes
-    uint16_t w = 32; // Default Galois field size
-    int max_data_stripes_per_frame = 64; // Default Max data stripes per frame
-    int max_fec_stripes_per_frame = 32; // Default Max FEC stripes per frame
-    int packet_size = 8; // Default Packet size 
-    uint8_t max_qr = 1; // Default Max QR value
-    uint16_t parity_delay = 0; // Default Parity delay
+    uint16_t tau = inputV::Params::tambur_tau; // default FEC protection window size 
+    int stripe_size = inputV::Params::tambur_stripe_size; // default stripe size in bytes
+    uint16_t w = inputV::Params::tambur_w; // Default Galois field size
+    int max_data_stripes_per_frame = inputV::Params::tambur_max_data_stripes_per_frame; // Default Max data stripes per frame
+    int max_fec_stripes_per_frame = inputV::Params::tambur_max_fec_stripes_per_frame; // Default Max FEC stripes per frame
+    int packet_size = inputV::Params::tambur_packet_size; // Default Packet size 
+    uint8_t max_qr = inputV::Params::tambur_max_qr; // Default Max QR value
+    uint16_t parity_delay = inputV::Params::tambur_parity_delay; // Default Parity delay
     
     // Calculate number of frames for delay
     uint16_t num_frames = num_frames_for_delay(tau);
@@ -996,56 +1016,60 @@ bool RTPSenderVideo::SendVideoWithTamburFEC(
     TimingLogger timingLoggerFECSender(log_folder + "sender/");
     metricLoggersFECSender.push_back(&timingLoggerFECSender);
     Logger loggerFECSender(log_folder + "sender/", metricLoggersFECSender);
-    
+
     // 1. Create packetization first
-    printf("\t\t\t==== 1. Create packetization first\n");
+    printf("\t\t\t== Sender == 1. Create packetization first\n");
     auto tambur_packetization = std::make_unique<StreamingCodePacketization>(
         w, stripe_size, std::map<int, std::pair<int, int>>{{0, {0, 1}}, {max_qr, {1, 2}}, {2 * max_qr, {1, 4}}}, 
         uint16_t(1500), parity_delay);
     
     // 2. Create header coding matrix info
-    printf("\t\t\t==== 2. Create header coding matrix info\n");
+    printf("\t\t\t== Sender == 2. Create header coding matrix info\n");
     CodingMatrixInfo coding_matrix_info_header{n_rows, n_cols, 8};
     
     // 3. Create FEC coding matrix info
-    printf("\t\t\t==== 3. Create FEC coding matrix info\n");
+    printf("\t\t\t== Sender == 3. Create FEC coding matrix info\n");
     CodingMatrixInfo coding_matrix_info_fec{
         uint16_t(num_frames_for_delay(tau) * max_fec_stripes_per_frame),
         uint16_t(num_frames_for_delay(tau) * max_data_stripes_per_frame), 
         w};
     
     // 4. Create header block code
-    printf("\t\t\t==== 4. Create header block code\n");
+    printf("\t\t\t== Sender == 4. Create header block code\n");
     auto block_code_header = std::make_unique<BlockCode>(
         coding_matrix_info_header, tau, std::pair<uint16_t, uint16_t>{1, 0}, 8, false);
     
     // 5. Create FEC block code
-    printf("\t\t\t==== 5. Create FEC block code\n");
+    printf("\t\t\t== Sender == 5. Create FEC block code\n");
     auto block_code_fec = std::make_unique<BlockCode>(
         coding_matrix_info_fec, tau, std::pair<uint16_t, uint16_t>{1, 1}, uint16_t(packet_size), false, &loggerFECSender);
     
     // 6. Create header code
-    printf("\t\t\t==== 6. Create header code\n");
+    printf("\t\t\t== Sender == 6. Create header code\n");
     auto tambur_header_code = std::make_unique<MultiFECHeaderCode>(
         block_code_header.get(), tau, coding_matrix_info_header.n_rows / num_frames_for_delay(tau));
     
     // 7. Create streaming code
-    printf("\t\t\t==== 7. Create streaming code\n");
+    printf("\t\t\t== Sender == 7. Create streaming code\n");
     auto tambur_code = std::make_unique<StreamingCode>(
         tau, stripe_size, block_code_fec.get(), w, max_data_stripes_per_frame, max_fec_stripes_per_frame);
     
     // 8. Create frame generator - 修复构造函数参数顺序
-    printf("\t\t\t==== 8. Create frame generator\n");
+    printf("\t\t\t== Sender == 8. Create frame generator\n");
     auto tambur_frame_generator = std::make_unique<FrameGenerator>(
         tambur_code.get(), tau, tambur_packetization.get(), 
         tambur_header_code.get(), &loggerFECSender, 0);
     
     // 9. Create FECSender wrapper - 修复构造函数参数
-    printf("\t\t\t==== 9. Create FECSender wrapper\n");
+    printf("\t\t\t== Sender == 9. Create FECSender wrapper\n");
     tambur_fec_sender_ = std::make_unique<FECSender>(
         *tambur_frame_generator, uint8_t(tau), &loggerFECSender, uint64_t(33), stripe_size * max_data_stripes_per_frame, true);
     
-    // 保存智能指针到成员变量，确保对象生命周期
+    // 10. Create Tambur Encoder
+    printf("\t\t\t== Sender == 10. Create Tambur Encoder\n");
+    tambur_encoder_ = std::make_unique<TamburEncoder>(tambur_fec_sender_.get());
+
+    // Store Tambur FEC components
     tambur_packetization_ = std::move(tambur_packetization);
     block_code_header_ = std::move(block_code_header);
     block_code_fec_ = std::move(block_code_fec);
@@ -1056,22 +1080,48 @@ bool RTPSenderVideo::SendVideoWithTamburFEC(
 
   // Convert WebRTC payload to format expected by Tambur FEC
   std::vector<uint8_t> frame_data(payload.begin(), payload.end());
-  
-  // Extract video frame information from header
-  uint32_t video_frame_num = rtp_timestamp;
-  uint8_t frameType = static_cast<uint8_t>(video_header.frame_type);
-  uint8_t num_frames_in_video_frame = 1; // Default to 1 frame
+  size_t frame_size = frame_data.size();
+  uint64_t max_frame_size_fec = tambur_fec_sender_->max_frame_size();
+  uint16_t rel_num_frames = uint16_t((frame_size / max_frame_size_fec) +
+                                ((frame_size % max_frame_size_fec) > 0));
+  while ((frame_size / rel_num_frames +
+          ((frame_size % rel_num_frames) > 0) +
+          FECDatagram::VIDEO_FRAME_INFO_SIZE) > tambur_fec_sender_->max_frame_size()) {
+    rel_num_frames++;
+  }
+
+  FrameType cur_frame_type = FrameType::UNKNOWN;
+  if (video_header.frame_type == VideoFrameType::kVideoFrameKey) {
+    cur_frame_type = FrameType::KEY;
+  } else {
+    cur_frame_type = FrameType::NONKEY;
+  }
   
   // Generate Tambur FEC packets using FECSender
-  std::vector<FECDatagram> tambur_packets = 
-      tambur_fec_sender_->next_frame(
-          payload.size() + FECDatagram::VIDEO_FRAME_INFO_SIZE,
-          frame_data.data(), video_frame_num, frameType, 
-          num_frames_in_video_frame);
+  std::vector<Datagram> tambur_packets = 
+      tambur_encoder_->encode(frame_data, frame_size, cur_frame_type, rel_num_frames);
 
   if (tambur_packets.empty()) {
     RTC_LOG(LS_ERROR) << "Tambur FEC failed to generate packets";
     return false;
+  }
+
+  printf("\t\t\t Tambur FEC generated %lu packets\n", tambur_packets.size());
+
+  // 依次输出每个 packet 的前 40 个字节，以16进制输出，例如 AA BB CC 这样，输出到一行即可，缩进为 \t\t\t\t，一个数据包一行，开头为 packet x: 
+  for (size_t i = 0; i < tambur_packets.size(); i++) {
+    printf("\t\t\t\t packet %lu: ", i);
+    const char* packet_data = tambur_packets[i].payload.data();
+    size_t data_len = tambur_packets[i].payload.size();
+    for (size_t j = 0; j < 40 && j < data_len; j++) {
+      printf("%02X ", (unsigned char)packet_data[j]);
+    }
+    printf("    size: %lu", tambur_packets[i].payload.size());
+    printf("\n");
+
+    printf("\t\t\t\t datagram.frame_id: %hu   datagram.frag_id: %hu    datagram.frag_cnt: %hu\n", 
+           tambur_packets[i].frame_id, tambur_packets[i].frag_id, tambur_packets[i].frag_cnt);
+    printf("\n");
   }
 
   // Convert Tambur packets to WebRTC RTP packets
@@ -1079,6 +1129,17 @@ bool RTPSenderVideo::SendVideoWithTamburFEC(
       ConvertTamburPacketsToRtp(tambur_packets, rtp_timestamp, payload_type, 
                                video_header, csrcs);
 
+  printf("\t\t\t Convert to %lu RTP packets\n", rtp_packets.size());
+  // 依次输出每个 packet 的前 40 个字节，以16进制输出，例如 AA BB CC 这样，输出到一行即可，缩进为 \t\t\t\t，一个数据包一行，开头为 packet x:
+  for (size_t i = 0; i < rtp_packets.size(); i++) {
+    printf("\t\t\t\t packet %lu: ", i);
+    for (size_t j = 0; j < 40 && j < rtp_packets[i]->size(); j++) {
+      printf("%02X ", rtp_packets[i]->data()[j]);
+    }
+    printf("    size: %lu", rtp_packets[i]->size());
+    printf("\n");
+  }
+  
   if (rtp_packets.empty()) {
     RTC_LOG(LS_ERROR) << "Failed to convert Tambur packets to RTP packets";
     return false;
@@ -1102,7 +1163,7 @@ bool RTPSenderVideo::SendVideoWithTamburFEC(
 
 std::vector<std::unique_ptr<RtpPacketToSend>> 
 RTPSenderVideo::ConvertTamburPacketsToRtp(
-    const std::vector<FECDatagram>& tambur_packets,
+    const std::vector<Datagram>& tambur_packets,
     uint32_t rtp_timestamp,
     int payload_type,
     const RTPVideoHeader& video_header,
@@ -1117,52 +1178,61 @@ RTPSenderVideo::ConvertTamburPacketsToRtp(
     
     rtp_packet->SetPayloadType(payload_type);
     rtp_packet->SetTimestamp(rtp_timestamp);
-    
-    // Set sequence number from Tambur packet
-    rtp_packet->SetSequenceNumber(static_cast<uint16_t>(tambur_packet.seq_num));
-    
-    // Set marker bit for last packet in frame
-    bool is_last_packet = (&tambur_packet == &tambur_packets.back());
+
+    // RTP sequence number should be assigned by WebRTC RTP sender/sequencer
+    // (see ModuleRtpRtcpImpl2::AssignSequenceNumber). Do not set it here.
+
+    const bool is_first_packet = (tambur_packet.frag_id == 0);
+    const bool is_last_packet = (tambur_packet.frag_id + 1 == tambur_packet.frag_cnt);
+
+    rtp_packet->set_first_packet_of_frame(is_first_packet);
+
+    // Set marker bit for last packet in frame.
     rtp_packet->SetMarker(is_last_packet);
+
+    // IMPORTANT: Header extensions must be added before payload is allocated.
+    // Otherwise RtpPacket::AllocateRawExtension() will fail with:
+    // "Can't add new extension id X after payload was set."
+    AddRtpHeaderExtensions(video_header, is_first_packet, is_last_packet,
+                           rtp_packet.get());
+
+    // Put packetization finish timestamp into extension.
+    if (rtp_packet->HasExtension<VideoTimingExtension>()) {
+      rtp_packet->set_packetization_finish_time(clock_->CurrentTime());
+    }
+
+    // // printf 输出 tambur_packet 的前 40 个字节，以16进制输出，例如 AA BB CC 这样，输出到一行即可: 
+    // printf("\t Before ser \t : ");
+    // for (size_t j = 0; j < 40 && j < tambur_packet.payload.size(); j++) {
+    //   printf("%02X ", static_cast<unsigned char>(tambur_packet.payload[j]));
+    // }
+    // printf("    size: %lu", tambur_packet.payload.size());
+    // printf("\n");
     
-    // Copy payload from Tambur packet
-    rtp_packet->SetPayloadSize(tambur_packet.payload.size());
-    memcpy(rtp_packet->AllocatePayload(tambur_packet.payload.size()),
-           tambur_packet.payload.data(), tambur_packet.payload.size());
-    
-    // Add RTP header extensions
-    AddTamburHeaderExtensions(rtp_packet.get(), tambur_packet, video_header);
-    
-    // Set packet type and retransmission permissions
+    // Copy serialized Tambur datagram into RTP payload.
+    const std::string serialized_packet = tambur_packet.serialize_to_string();
+
+    // // printf 输出 serialized_packet 的前 40 个字节，以16进制输出，例如 AA BB CC 这样，输出到一行即可: 
+    // printf("\t After ser \t : ");
+    // for (size_t j = 0; j < 40 && j < serialized_packet.size(); j++) {
+    //   printf("%02X ", static_cast<unsigned char>(serialized_packet[j]));
+    // }
+    // printf("    size: %lu", serialized_packet.size());
+    // printf("\n");
+
+    uint8_t* dst = rtp_packet->AllocatePayload(serialized_packet.size());
+    RTC_DCHECK(dst);
+    memcpy(dst, serialized_packet.data(), serialized_packet.size());
+
+    // Set packet type and retransmission permissions.
     rtp_packet->set_packet_type(RtpPacketMediaType::kVideo);
     rtp_packet->set_allow_retransmission(true);
     rtp_packet->set_is_key_frame(video_header.frame_type == VideoFrameType::kVideoFrameKey);
-    
-    // TODO: set parity flag
-    // rtp_packet->set_is_parity(tambur_packet.is_parity);
     
     rtp_packets.push_back(std::move(rtp_packet));
   }
 
   return rtp_packets;
-}
-
-void RTPSenderVideo::AddTamburHeaderExtensions(
-    RtpPacketToSend* packet,
-    const FECDatagram& tambur_packet,
-    const RTPVideoHeader& video_header) const {
-  
-  // Add standard WebRTC header extensions
-  bool is_first_packet = (tambur_packet.pos_in_frame == 0);
-  bool is_last_packet = false;  // Simplified - would need proper logic
-  
-  // Corrected call to AddRtpHeaderExtensions
-  AddRtpHeaderExtensions(video_header, is_first_packet, is_last_packet, packet);
-  
-  // Set packetization finish timestamp
-  if (packet->HasExtension<VideoTimingExtension>()) {
-    packet->set_packetization_finish_time(clock_->CurrentTime());
-  }
 }
 
 }  // namespace webrtc

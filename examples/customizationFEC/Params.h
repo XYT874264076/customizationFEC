@@ -133,6 +133,47 @@ public:
         generate_fec_num = param_value_int;
     }
 
+    if (name=="tamburTau"){
+        param_value_int = std::stoi(value);
+        tambur_tau = param_value_int;
+    }
+    if (name=="tamburStripeSize"){
+        param_value_int = std::stoi(value);
+        tambur_stripe_size = param_value_int;
+    }
+    if (name=="tamburW"){
+        param_value_int = std::stoi(value);
+        tambur_w = param_value_int;
+    }
+    if (name=="tamburMaxDataStripesPerFrame"){
+        param_value_int = std::stoi(value);
+        tambur_max_data_stripes_per_frame = param_value_int;
+    }
+    if (name=="tamburMaxFecStripesPerFrame"){
+        param_value_int = std::stoi(value);
+        tambur_max_fec_stripes_per_frame = param_value_int;
+    }
+    if (name=="tamburPacketSize"){
+        param_value_int = std::stoi(value);
+        tambur_packet_size = param_value_int;
+    }
+    if (name=="tamburMaxQr"){
+        param_value_int = std::stoi(value);
+        tambur_max_qr = param_value_int;
+    }
+    if (name=="tamburParityDelay"){
+        param_value_int = std::stoi(value);
+        tambur_parity_delay = param_value_int;
+    }
+    if (name=="tamburParityDelay"){
+        param_value_int = std::stoi(value);
+        tambur_parity_delay = param_value_int;
+    }
+    if (name=="tamburNumQrsNoReduce"){
+        param_value_int = std::stoi(value);
+        tambur_num_qrs_no_reduce = param_value_int;
+    }
+
     return 0;
  }
 
@@ -149,6 +190,17 @@ public:
     ifSaveI = false;
     ifTrainM = false;
     ifSaveM = false;
+
+    // Tambur params
+    tambur_tau = 3; // default FEC protection window size 
+    tambur_stripe_size = 256; // default stripe size in bytes
+    tambur_w = 32; // Default Galois field size
+    tambur_max_data_stripes_per_frame = 64; // Default Max data stripes per frame
+    tambur_max_fec_stripes_per_frame = 32; // Default Max FEC stripes per frame
+    tambur_packet_size = 8; // Default Packet size 
+    tambur_max_qr = 1; // Default Max QR value
+    tambur_parity_delay = 3; // Default Parity delay
+    tambur_num_qrs_no_reduce = 2; // Default Num QRs no reduce
 
     for (int i=1;i<argc;i++){
         std::string arg = argv[i];
@@ -178,6 +230,17 @@ public:
  static bool ifSaveI;
  static bool ifTrainM;
  static bool ifSaveM;
+
+ // Tambur params
+ static uint16_t tambur_tau;
+ static int tambur_stripe_size;
+ static uint16_t tambur_w;
+ static int tambur_max_data_stripes_per_frame; 
+ static int tambur_max_fec_stripes_per_frame;
+ static int tambur_packet_size;  
+ static uint8_t tambur_max_qr;
+ static uint16_t tambur_parity_delay;
+ static uint8_t tambur_num_qrs_no_reduce;
 };
 } // namespace inputV
 

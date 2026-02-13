@@ -45,6 +45,7 @@
 #include "rtc_base/synchronization/mutex.h"
 #include "rtc_base/thread_annotations.h"
 #include "examples/customizationFEC/Tambur/src/fec/frame_generator.hh"
+#include "examples/customizationFEC/Tambur/Tamburencoder.hh"
 #include "examples/customizationFEC/Tambur/src/fec/fec_sender.hh"
 #include "examples/customizationFEC/Tambur/src/fec/streaming_code/streaming_code.hh"
 #include "examples/customizationFEC/Tambur/src/fec/streaming_code/streaming_code_packetization.hh"
@@ -217,16 +218,11 @@ class RTPSenderVideo : public RTPVideoFrameSenderInterface {
 
   // Helper methods for Tambur FEC integration
   std::vector<std::unique_ptr<RtpPacketToSend>> ConvertTamburPacketsToRtp(
-      const std::vector<FECDatagram>& tambur_packets,
+      const std::vector<Datagram>& tambur_packets,
       uint32_t rtp_timestamp,
       int payload_type,
       const RTPVideoHeader& video_header,
       const std::vector<uint32_t>& csrcs) const
-      RTC_EXCLUSIVE_LOCKS_REQUIRED(send_checker_);
-
-  void AddTamburHeaderExtensions(RtpPacketToSend* packet,
-                                 const FECDatagram& tambur_packet,
-                                 const RTPVideoHeader& video_header) const
       RTC_EXCLUSIVE_LOCKS_REQUIRED(send_checker_);
 
   RTPSender* const rtp_sender_;
@@ -296,6 +292,8 @@ class RTPSenderVideo : public RTPVideoFrameSenderInterface {
   const bool enable_av1_even_split_;
 
   // Tambur FEC specific members
+  std::unique_ptr<TamburEncoder> tambur_encoder_
+      RTC_GUARDED_BY(send_checker_);
   std::unique_ptr<FECSender> tambur_fec_sender_
       RTC_GUARDED_BY(send_checker_);
   std::unique_ptr<StreamingCodePacketization> tambur_packetization_
@@ -310,12 +308,6 @@ class RTPSenderVideo : public RTPVideoFrameSenderInterface {
       RTC_GUARDED_BY(send_checker_);
   std::unique_ptr<FrameGenerator> tambur_frame_generator_
       RTC_GUARDED_BY(send_checker_);
-
- private:
-  // Helper function to calculate number of frames for a given delay
-  uint16_t num_frames_for_delay(uint8_t tau) {
-    return tau + 1;
-  }
 };
 
 }  // namespace webrtc

@@ -18,16 +18,11 @@ BlockCode::BlockCode(CodingMatrixInfo codingMatrixInfo,
   {
     assert(false && "Invalid w");
   }
-  printf("\t\t\t ==== Do streamingCodeHelper_.emplace\n");
-  printf("\t\t\t ==== streamingCodeHelper_: %b\n", streamingCodeHelper_.has_value());
   streamingCodeHelper_.emplace(codingMatrixInfo, delay, v_to_u_ratio);
-  printf("\t\t\t ==== init factory\n");
   BlockCodeFactory factory(codingMatrixInfo, streamingCodeHelper_.value(),
                            delay);
-  printf("\t\t\t ==== init_matrices\n");
   init_matrices(factory.get_generator_matrix().value(), packet_size,
                 codingMatrixInfo);
-  printf("\t\t\t ==== initialize_data\n");
   initialize_data();
   validate_matrix(v_to_u_ratio);
 }

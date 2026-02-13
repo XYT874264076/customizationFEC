@@ -6,7 +6,6 @@ StreamingCodeHelper::StreamingCodeHelper(CodingMatrixInfo codingMatrixInfo,
     uint16_t delay, pair<uint16_t, uint16_t> v_to_u_ratio) :
     codingMatrixInfo_(codingMatrixInfo), delay_(delay)
 {
-  printf("\t\t\t ==== StreamingCodeHelper\n");
   set_vs_and_us(v_to_u_ratio);
 }
 
@@ -14,13 +13,9 @@ void StreamingCodeHelper::set_vs_and_us(pair<uint16_t, uint16_t> v_to_u_ratio)
 {
   positions_of_us_ = vector<bool>(codingMatrixInfo_.n_cols, false);
   auto num_frames = num_frames_for_delay(delay_);
-  printf("\t\t\t ==== set_vs_and_us\n");
-  printf("\t\t\t ==== num_frames: %d\n", num_frames);
   for (uint16_t frame_num = 0; frame_num < num_frames; frame_num++) {
     auto cols = cols_of_frame(frame_num, delay_, codingMatrixInfo_);
-    printf("\t\t\t ==== cols: %d, %d\n", cols.first, cols.second);
     for (uint16_t col = cols.first; col <= cols.second; col++) {
-      // printf("\t\t\t ==== col: %d\n", col);
       if ((col - cols.first) % (v_to_u_ratio.first + v_to_u_ratio.second)
           >= v_to_u_ratio.first) { positions_of_us_.at(col) = true; }
     }

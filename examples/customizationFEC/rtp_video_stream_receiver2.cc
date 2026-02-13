@@ -23,6 +23,7 @@
 #include "absl/algorithm/container.h"
 #include "absl/memory/memory.h"
 #include "absl/types/variant.h"
+#include "api/video/encoded_image.h"
 #include "api/video/video_codec_type.h"
 #include "common_video/corruption_detection_converters.h"
 #include "common_video/corruption_detection_message.h"
@@ -45,8 +46,21 @@
 #include "examples/customizationFEC/UlpFEC/ulpfec_receiver.h"
 #include "examples/customizationFEC/RS_FEC/RSfec_receiver.h"
 #include "examples/customizationFEC/Tambur/TamburFecReceiver.h"
+#include "examples/customizationFEC/Tambur/Tamburdecoder.hh"
+#include "examples/customizationFEC/Tambur/src/fec/fec_multi_receiver.hh"
+#include "examples/customizationFEC/Tambur/src/fec/streaming_code/streaming_code.hh"
+#include "examples/customizationFEC/Tambur/src/fec/streaming_code/multi_fec_header_code.hh"
+#include "examples/customizationFEC/Tambur/src/fec/quality_reporter.hh"
+#include "examples/customizationFEC/Tambur/src/fec/quality_reporting/simple_quality_report_generator.hh"
+#include "examples/customizationFEC/Tambur/src/fec/multi_fec/multi_frame_fec_helpers.hh"
+#include "examples/customizationFEC/Tambur/src/fec/multi_fec/block_code.hh"
+#include "examples/customizationFEC/Tambur/src/fec/logger.hh"
+#include "examples/customizationFEC/Tambur/src/fec/logging/timing_logger.hh"
+#include "examples/customizationFEC/Tambur/src/fec/logging/frame_logger.hh"
+#include "examples/customizationFEC/Tambur/src/fec/metric_logger.hh"
 #include "modules/rtp_rtcp/source/video_rtp_depacketizer.h"
 #include "modules/rtp_rtcp/source/video_rtp_depacketizer_raw.h"
+#include "modules/rtp_rtcp/source/video_rtp_depacketizer_vp8.h"
 #include "modules/video_coding/h264_sprop_parameter_sets.h"
 #include "modules/video_coding/h264_sps_pps_tracker.h"
 #include "modules/video_coding/nack_requester.h"
@@ -315,6 +329,12 @@ RtpVideoStreamReceiver2::RtpVideoStreamReceiver2(
       has_received_frame_(false),
       frames_decryptable_(false),
       absolute_capture_time_interpolator_(&env_.clock()) {
+  
+  // Initialize Tambur FEC components if in TamburFEC mode
+  if (inputV::Params::type == inputV::ExpType::TamburFEC) {
+    InitializeTamburFEC();
+  }
+  
   packet_sequence_checker_.Detach();
   if (packet_router_) {
     // Do not register as REMB candidate, this is only done when starting to
@@ -362,6 +382,122 @@ RtpVideoStreamReceiver2::RtpVideoStreamReceiver2(
             this, &env_.clock(), std::move(frame_transformer),
             rtc::Thread::Current(), config_.rtp.remote_ssrc);
     frame_transformer_delegate_->Init();
+  }
+}
+
+std::optional<Datagram> RtpVideoStreamReceiver2::ConvertRtpToDatagram(
+    const RtpPacketReceived& rtp_packet) const {
+  const auto payload = rtp_packet.payload();
+  if (payload.empty()) {
+    return std::nullopt;
+  }
+  const std::string binary(reinterpret_cast<const char*>(payload.data()),
+                           payload.size());
+  Datagram datagram;
+  if (!datagram.parse_from_string(binary)) {
+    return std::nullopt;
+  }
+  return datagram;
+}
+
+// Initialize Tambur FEC components
+void RtpVideoStreamReceiver2::InitializeTamburFEC() {
+  RTC_LOG(LS_INFO) << "Initializing Tambur FEC receiver";
+  RTC_DCHECK_RUN_ON(&packet_sequence_checker_);
+
+  if (!tambur_decoder_) {
+
+    // Get configuration parameters from WebRTC config
+    uint16_t tau = inputV::Params::tambur_tau; // default FEC protection window size 
+    int stripe_size = inputV::Params::tambur_stripe_size; // default stripe size in bytes
+    uint16_t w = inputV::Params::tambur_w; // Default Galois field size
+    int max_data_stripes_per_frame = inputV::Params::tambur_max_data_stripes_per_frame; // Default Max data stripes per frame
+    int max_fec_stripes_per_frame = inputV::Params::tambur_max_fec_stripes_per_frame; // Default Max FEC stripes per frame
+    int packet_size = inputV::Params::tambur_packet_size; // Default Packet size 
+    uint8_t max_qr = inputV::Params::tambur_max_qr; // Default Max QR value
+    uint8_t num_qrs_no_reduce = inputV::Params::tambur_num_qrs_no_reduce;
+
+    // Calculate number of frames for delay
+    uint16_t num_frames = num_frames_for_delay(tau);
+    uint16_t n_cols = num_frames;
+    uint16_t n_rows = 256;
+    while (n_rows * n_cols > 255 or (n_rows % num_frames))
+    {
+      n_rows--;
+    }
+
+    std::string log_folder = "logs/";
+    std::vector<MetricLogger *> metricLoggers;
+    auto timingLogger = std::make_unique<TimingLogger>(log_folder + "receiver/");
+    auto frameLogger = std::make_unique<FrameLogger>(log_folder + "receiver/");
+    metricLoggers.push_back(timingLogger.get());
+    auto logger = std::make_unique<Logger>(log_folder + "receiver/", metricLoggers, frameLogger.get());
+
+    // 1. Create header coding matrix info
+    printf("\t\t\t== Receiver == 1. Create header coding matrix info\n");
+    CodingMatrixInfo coding_matrix_info_header{n_rows, n_cols, 8};
+
+    // 2. Create FEC coding matrix info
+    printf("\t\t\t== Receiver == 2. Create FEC coding matrix info\n");
+    CodingMatrixInfo coding_matrix_info_fec{
+        uint16_t(num_frames_for_delay(tau) * max_fec_stripes_per_frame),
+        uint16_t(num_frames_for_delay(tau) * max_data_stripes_per_frame), 
+        w};
+
+    // 3. Create header block code
+    printf("\t\t\t== Receiver == 3. Create header block code\n");
+    auto block_code_header = std::make_unique<BlockCode>(
+        coding_matrix_info_header, tau, std::pair<uint16_t, uint16_t>{1, 0}, 8, false);
+
+    // 4. Create FEC block code
+    printf("\t\t\t== Receiver == 4. Create FEC block code\n");    
+    auto block_code_fec = std::make_unique<BlockCode>(
+        coding_matrix_info_fec, tau, std::pair<uint16_t, uint16_t>{1, 1}, uint16_t(packet_size), false, logger.get());
+    // 5. Create header code
+    printf("\t\t\t== Receiver == 5. Create header code\n");
+    auto tambur_header_code = std::make_unique<MultiFECHeaderCode>(
+        block_code_header.get(), tau, coding_matrix_info_header.n_rows / num_frames_for_delay(tau));
+
+    // 6. Create streaming code
+    printf("\t\t\t== Receiver == 6. Create streaming code\n");
+    auto tambur_code = std::make_unique<StreamingCode>(
+        tau, stripe_size, block_code_fec.get(), w, max_data_stripes_per_frame, max_fec_stripes_per_frame);
+    
+    // 7. Create quality reporter generator
+    printf("\t\t\t== Receiver == 7. Create quality reporter generator\n");
+    auto quality_report_generator = std::make_unique<SimpleQualityReportGenerator>(
+        num_qrs_no_reduce, max_qr);
+    
+    // 8. Create quality reporter
+    printf("\t\t\t== Receiver == 8. Create quality reporter\n");
+    auto quality_reporter = std::make_unique<QualityReporter>(nullptr, nullptr, quality_report_generator.get());
+
+    // 9. Create FEC multi receiver
+    printf("\t\t\t== Receiver == 9. Create FEC multi receiver\n");
+    tambur_fec_receiver_ = std::make_unique<FECMultiReceiver>(
+        tambur_code.get(), 
+        tau,
+        num_frames_for_delay(tau),
+        tambur_header_code.get(),
+        quality_reporter.get(),
+        logger.get(),
+        2000.0,
+        true,
+        true);
+
+    // 10. Create Tambur Decoder
+    printf("\t\t\t== Receiver == 10. Create Tambur Decoder\n");
+    tambur_decoder_ = std::make_unique<TamburDecoder>(tambur_fec_receiver_.get());
+
+    // Store Tambur FEC components
+    block_code_header_ = std::move(block_code_header);
+    block_code_fec_ = std::move(block_code_fec);
+    tambur_header_code_ = std::move(tambur_header_code);
+    tambur_code_ = std::move(tambur_code);
+    tambur_quality_reporter_ = std::move(quality_reporter);
+    logger_ = std::move(logger);
+    frameLogger_ = std::move(frameLogger);
+    timingLogger_ = std::move(timingLogger);
   }
 }
 
@@ -690,6 +826,12 @@ bool RtpVideoStreamReceiver2::OnReceivedPayloadData(
     return false;
   }
 
+  // 我认为我应该在这里进入 Tambur 处理逻辑
+  // Tambur FEC processing branch - handle Tambur FEC packets here
+  if (inputV::Params::type == inputV::ExpType::TamburFEC) {
+    return ProcessTamburFECPacket(std::shared_ptr<const video_coding::PacketBuffer::Packet>(std::move(packet)), rtp_packet);
+  }
+
   if (packet->codec() == kVideoCodecH264) {
     // Only when we start to receive packets will we know what payload type
     // that will be used. When we know the payload type insert the correct
@@ -734,6 +876,128 @@ bool RtpVideoStreamReceiver2::OnReceivedPayloadData(
   }
   return false;
 }
+
+// Tambur FEC处理方法 - 正确处理Tambur数据并调用原生解包器
+bool RtpVideoStreamReceiver2::ProcessTamburFECPacket(std::shared_ptr<const video_coding::PacketBuffer::Packet> packet, const RtpPacketReceived& rtp_packet) {
+  RTC_DCHECK_RUN_ON(&packet_sequence_checker_);
+
+  RTC_LOG(LS_INFO) << "Processing Tambur FEC packet: RTP_seq=" << packet->sequence_number
+                   << ", timestamp=" << packet->timestamp
+                   << ", payload_type=" << static_cast<int>(packet->payload_type)
+                   << ", size=" << rtp_packet.payload().size();
+  
+  // printf 输出 RTP payload 的前 40 个字节，以16进制输出，例如 AA BB CC 这样，输出到一行即可，开头为 \t == Receive == \t
+  printf("\t== Receive RTP ==\t");
+  for (size_t i = 0; i < 40 && i < rtp_packet.payload().size(); i++) {
+    printf("%02X ", (unsigned char)rtp_packet.payload().data()[i]);
+  }
+  printf("    size: %lu", rtp_packet.payload().size());
+  printf("\n");
+
+  if (!tambur_decoder_) {
+    RTC_LOG(LS_ERROR) << "TamburDecoder not initialized";
+    return false;
+  }
+
+  // Convert RTP packet payload to Tambur Datagram
+  const std::string binary(reinterpret_cast<const char*>(rtp_packet.payload().data()), 
+                          rtp_packet.payload().size());
+  Datagram datagram;
+  if (!datagram.parse_from_string(binary)) {
+    RTC_LOG(LS_WARNING) << "Failed to parse Tambur datagram from RTP packet payload";
+    return false;
+  }
+
+  // printf 输出 datagram 的前 40 个字节，以16进制输出，例如 AA BB CC 这样，输出到一行即可，开头为 \t == Receive == \t
+  printf("\t== Receive Datagram ==\t");
+  for (size_t i = 0; i < 40 && i < datagram.payload.size(); i++) {
+    printf("%02X ", (unsigned char)datagram.payload[i]);
+  }
+  printf("    size: %lu", datagram.payload.size());
+  printf("\n");
+
+  // Add datagram to TamburDecoder with complete packet object
+  bool success = tambur_decoder_->add_datagram(datagram, packet);
+  
+  if (!success) {
+    RTC_LOG(LS_WARNING) << "Failed to add RTP packet to TamburDecoder";
+    return false;
+  }
+
+  // Check if there are complete frames ready
+  while (auto timestamped_frame = tambur_decoder_->get_next_timestamped_frame()) {
+    ProcessDecodedTamburFrame(timestamped_frame->frame_data,
+                              timestamped_frame->rtp_timestamp,
+                              timestamped_frame->frame_info,
+                              timestamped_frame->packets,
+                              timestamped_frame->first_packet,
+                              timestamped_frame->last_packet);
+  }
+
+  return true;
+}
+
+// 实现ProcessDecodedTamburFrame方法
+void RtpVideoStreamReceiver2::ProcessDecodedTamburFrame(
+    const std::string& frame_data,
+    uint32_t rtp_timestamp,
+    const TamburDecoder::FrameInfo& frame_info,
+    const std::vector<std::shared_ptr<const video_coding::PacketBuffer::Packet>>& packets,
+    const std::optional<std::shared_ptr<const video_coding::PacketBuffer::Packet>>& first_packet,
+    const std::optional<std::shared_ptr<const video_coding::PacketBuffer::Packet>>& last_packet) {
+  RTC_DCHECK_RUN_ON(&packet_sequence_checker_);
+
+  RTC_LOG(LS_INFO) << "Processing decoded Tambur frame: "
+                   << "size=" << frame_data.size()
+                   << ", timestamp=" << rtp_timestamp
+                   << ", frame_id=" << frame_info.frame_id
+                   << ", type=" << (frame_info.is_key_frame ? "KEY" : "DELTA")
+                   << ", payload_type=" << static_cast<int>(frame_info.payload_type)
+                   << ", packets=" << packets.size()
+                   << ", has_first_packet=" << first_packet.has_value()
+                   << ", has_last_packet=" << last_packet.has_value();
+  
+  if (!first_packet.has_value() || !last_packet.has_value()) {
+    RTC_LOG(LS_WARNING) << "No first or last packet available for decoded Tambur frame";
+    return;
+  }
+
+  // Convert Tambur decoded data to WebRTC format
+  auto image_buffer = EncodedImageBuffer::Create(
+      reinterpret_cast<const uint8_t*>(frame_data.data()), frame_data.size());
+  
+  // Create RtpFrameObject with complete RTP packet information from TamburDecoder
+  const int max_nack_count = 0;     // No retransmission info available
+
+  // Get first_packet video_header
+  RTPVideoHeader first_packet_video_header = first_packet.value()->video_header;
+  
+  // Create RtpFrameObject and call OnAssembledFrame directly
+  OnAssembledFrame(std::make_unique<RtpFrameObject>(
+      first_packet.value()->seq_num(),                   // first_seq_num from packets
+      last_packet.value()->seq_num(),                    // last_seq_num from packets
+      last_packet.value()->marker_bit,                   // marker_bit
+      max_nack_count,                            // max_nack_count
+      frame_info.min_receive_time,                  // min_recv_time
+      frame_info.max_receive_time,                  // max_recv_time
+      first_packet.value()->timestamp,                    // timestamp
+      ntp_estimator_.Estimate(first_packet.value()->timestamp),     // ntp_time
+      last_packet.value()->video_header.video_timing,    // video_timing
+      first_packet.value()->payload_type,                   // payload_type from frame_info
+      first_packet.value()->codec(),                     // codec
+      last_packet.value()->video_header.rotation,        // rotation from first packet
+      last_packet.value()->video_header.content_type,     // content_type from first packet
+      first_packet.value()->video_header,                  // video_header from first packet
+      last_packet.value()->video_header.color_space,                              // color_space
+      last_packet.value()->video_header.frame_instrumentation_data,                              // frame_instrumentation_data
+      RtpPacketInfos(),                          // packet_infos
+      std::move(image_buffer)));                // bitstream
+
+  RTC_LOG(LS_INFO) << "Successfully processed Tambur decoded frame through OnAssembledFrame";
+
+}
+
+
 
 void RtpVideoStreamReceiver2::OnRecoveredPacket(
     const RtpPacketReceived& packet) {
@@ -1192,6 +1456,25 @@ void RtpVideoStreamReceiver2::ReceivePacket(const RtpPacketReceived& packet) {
 
   auto parse_and_insert = [&](const RtpPacketReceived& packet) {
     RTC_DCHECK_RUN_ON(&packet_sequence_checker_);
+    
+    // TODO: 我认为这一段不需要
+    // // Check if this is a Tambur FEC packet and handle it in OnReceivedPayloadData
+    // if (inputV::Params::type == inputV::ExpType::TamburFEC) {
+    //   // For Tambur FEC packets, create a minimal video header and pass to OnReceivedPayloadData
+    //   RTPVideoHeader video_header;
+    //   video_header.frame_type = VideoFrameType::kVideoFrameDelta;
+    //   video_header.codec = VideoCodecType::kVideoCodecGeneric;
+      
+    //   int times_nacked = nack_module_
+    //                          ? nack_module_->OnReceivedPacket(
+    //                                packet.SequenceNumber(), packet.recovered())
+    //                          : -1;
+
+    //   return OnReceivedPayloadData(packet.PayloadBuffer(),
+    //                                packet, video_header,
+    //                                times_nacked);
+    // }
+    
     std::optional<VideoRtpDepacketizer::ParsedRtpPayload> parsed_payload =
         type_it->second->Parse(packet.PayloadBuffer());
     if (parsed_payload == std::nullopt) {

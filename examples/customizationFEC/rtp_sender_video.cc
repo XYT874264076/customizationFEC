@@ -1008,14 +1008,14 @@ bool RTPSenderVideo::SendVideoWithTamburFEC(
     }
 
     std::string log_folder = "logs/";
-    std::vector<MetricLogger *> metricLoggersFrameGenerator;
-    TimingLogger timingLoggerFrameGenerator(log_folder + "frame_generator/");
-    metricLoggersFrameGenerator.push_back(&timingLoggerFrameGenerator);
-    Logger loggerFrameGenerator(log_folder + "frame_generator/", metricLoggersFrameGenerator);
+    // std::vector<MetricLogger *> metricLoggersFrameGenerator;
+    // TimingLogger timingLoggerFrameGenerator(log_folder + "frame_generator/");
+    // metricLoggersFrameGenerator.push_back(&timingLoggerFrameGenerator);
+    // Logger loggerFrameGenerator(log_folder + "frame_generator/", metricLoggersFrameGenerator);
     std::vector<MetricLogger *> metricLoggersFECSender;
-    TimingLogger timingLoggerFECSender(log_folder + "sender/");
-    metricLoggersFECSender.push_back(&timingLoggerFECSender);
-    Logger loggerFECSender(log_folder + "sender/", metricLoggersFECSender);
+    auto timingLoggerFECSender = std::make_unique<TimingLogger>(log_folder + "sender/");
+    metricLoggersFECSender.push_back(timingLoggerFECSender.get());
+    auto loggerFECSender = std::make_unique<Logger>(log_folder + "sender/", metricLoggersFECSender);
 
     // 1. Create packetization first
     printf("\t\t\t== Sender == 1. Create packetization first\n");
@@ -1042,7 +1042,7 @@ bool RTPSenderVideo::SendVideoWithTamburFEC(
     // 5. Create FEC block code
     printf("\t\t\t== Sender == 5. Create FEC block code\n");
     auto block_code_fec = std::make_unique<BlockCode>(
-        coding_matrix_info_fec, tau, std::pair<uint16_t, uint16_t>{1, 1}, uint16_t(packet_size), false, &loggerFECSender);
+        coding_matrix_info_fec, tau, std::pair<uint16_t, uint16_t>{1, 1}, uint16_t(packet_size), false, loggerFECSender.get());
     
     // 6. Create header code
     printf("\t\t\t== Sender == 6. Create header code\n");
@@ -1058,12 +1058,12 @@ bool RTPSenderVideo::SendVideoWithTamburFEC(
     printf("\t\t\t== Sender == 8. Create frame generator\n");
     auto tambur_frame_generator = std::make_unique<FrameGenerator>(
         tambur_code.get(), tau, tambur_packetization.get(), 
-        tambur_header_code.get(), &loggerFECSender, 0);
+        tambur_header_code.get(), loggerFECSender.get(), 0);
     
     // 9. Create FECSender wrapper - 修复构造函数参数
     printf("\t\t\t== Sender == 9. Create FECSender wrapper\n");
     tambur_fec_sender_ = std::make_unique<FECSender>(
-        *tambur_frame_generator, uint8_t(tau), &loggerFECSender, uint64_t(33), stripe_size * max_data_stripes_per_frame, true);
+        *tambur_frame_generator, uint8_t(tau), loggerFECSender.get(), uint64_t(33), stripe_size * max_data_stripes_per_frame, true);
     
     // 10. Create Tambur Encoder
     printf("\t\t\t== Sender == 10. Create Tambur Encoder\n");
@@ -1076,6 +1076,8 @@ bool RTPSenderVideo::SendVideoWithTamburFEC(
     tambur_header_code_ = std::move(tambur_header_code);
     tambur_code_ = std::move(tambur_code);
     tambur_frame_generator_ = std::move(tambur_frame_generator);
+    loggerFECSender_ = std::move(loggerFECSender);
+    timingLoggerFECSender_ = std::move(timingLoggerFECSender);
   }
 
   // Convert WebRTC payload to format expected by Tambur FEC
@@ -1132,11 +1134,11 @@ bool RTPSenderVideo::SendVideoWithTamburFEC(
   printf("\t\t\t Convert to %lu RTP packets\n", rtp_packets.size());
   // 依次输出每个 packet 的前 40 个字节，以16进制输出，例如 AA BB CC 这样，输出到一行即可，缩进为 \t\t\t\t，一个数据包一行，开头为 packet x:
   for (size_t i = 0; i < rtp_packets.size(); i++) {
-    printf("\t\t\t\t packet %lu: ", i);
+    printf("\t\t\t\t packet %lu（size:%zu）: ", i, rtp_packets[i]->size());
     for (size_t j = 0; j < 40 && j < rtp_packets[i]->size(); j++) {
       printf("%02X ", rtp_packets[i]->data()[j]);
     }
-    printf("    size: %lu", rtp_packets[i]->size());
+    printf("    size: %zu", rtp_packets[i]->size());
     printf("\n");
   }
   

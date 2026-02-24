@@ -308,6 +308,8 @@ class RTPSenderVideo : public RTPVideoFrameSenderInterface {
       RTC_GUARDED_BY(send_checker_);
   std::unique_ptr<FrameGenerator> tambur_frame_generator_
       RTC_GUARDED_BY(send_checker_);
+  std::unique_ptr<Logger> loggerFECSender_;
+  std::unique_ptr<TimingLogger> timingLoggerFECSender_;
 };
 
 }  // namespace webrtc

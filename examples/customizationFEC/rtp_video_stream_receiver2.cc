@@ -947,6 +947,8 @@ void RtpVideoStreamReceiver2::ProcessDecodedTamburFrame(
     const std::optional<std::shared_ptr<const video_coding::PacketBuffer::Packet>>& last_packet) {
   RTC_DCHECK_RUN_ON(&packet_sequence_checker_);
 
+  printf("\t\t\t== ProcessDecodedTamburFrame\n");
+
   RTC_LOG(LS_INFO) << "Processing decoded Tambur frame: "
                    << "size=" << frame_data.size()
                    << ", timestamp=" << rtp_timestamp
@@ -965,7 +967,32 @@ void RtpVideoStreamReceiver2::ProcessDecodedTamburFrame(
   // Convert Tambur decoded data to WebRTC format
   auto image_buffer = EncodedImageBuffer::Create(
       reinterpret_cast<const uint8_t*>(frame_data.data()), frame_data.size());
-  
+
+  printf("\t\t\t== Receive video header: width:%d\theight:%d\n", first_packet.value()->video_header.width, first_packet.value()->video_header.height);
+  printf("\t\t\t== payload size: %zu", frame_data.size());
+  printf("\t\t\t== first_packet seq_num:%d\t last_packet seq_num:%d\n", first_packet.value()->seq_num(), last_packet.value()->seq_num());
+  printf("\t\t\t== max_nack_count:%d\t min_recv_time:%ld\t max_recv_time:%ld\n", 0, frame_info.min_receive_time, frame_info.max_receive_time);
+  printf("\t\t\t== payload_type:%d\t codec:%d\t rotation:%d\t content_type:%d\n", first_packet.value()->payload_type, first_packet.value()->codec(), last_packet.value()->video_header.rotation, last_packet.value()->video_header.content_type);
+
+  // 用 printf 输出 image_buffer 的前 128 字节，用十六进制输出，例如 AA BB CC 这样，每 32 字节一行
+  printf("\t\t\t== Decoded Frame Data ==\n");
+  for (size_t i = 0; i < 128 && i < image_buffer->size(); i++) {
+    if (i % 32 == 0) {
+      printf("\n\t\t\t");
+    }
+    printf("%02X ", image_buffer->data()[i]);
+  }
+  printf("\n\t\t\t ... ... ...");
+  // 再输出 image_buffer 的后 128 字节，同上
+  printf("\n\t\t\t");
+  for (size_t i = image_buffer->size() - 128; i < image_buffer->size(); i++) {
+    if (i % 32 == 0) {
+      printf("\n\t\t\t");
+    }
+    printf("%02X ", image_buffer->data()[i]);
+  }
+  printf("\n");  
+
   // Create RtpFrameObject with complete RTP packet information from TamburDecoder
   const int max_nack_count = 0;     // No retransmission info available
 
@@ -1173,6 +1200,32 @@ void RtpVideoStreamReceiver2::OnInsertedPacket(
       }
 
       const video_coding::PacketBuffer::Packet& last_packet = *packet;
+
+      printf("\t\t\t== Receive video header: width:%d\theight:%d\n", first_packet->video_header.width, first_packet->video_header.height);
+      printf("\t\t\t== payload size: %zu", bitstream->size());
+      printf("\t\t\t== first_packet seq_num:%d\t last_packet seq_num:%d\n", first_packet->seq_num(), last_packet.seq_num());
+      printf("\t\t\t== max_nack_count:%d\t min_recv_time:%ld\t max_recv_time:%ld\n", max_nack_count, min_recv_time, max_recv_time);
+      printf("\t\t\t== payload_type:%d\t codec:%d\t rotation:%d\t content_type:%d\n", first_packet->payload_type, first_packet->codec(), last_packet.video_header.rotation, last_packet.video_header.content_type);
+      
+      // 用 printf 输出 bitstream 的前 128 字节，用十六进制输出，例如 AA BB CC 这样，每 32 字节一行
+      printf("\t\t\t== Decoded Frame Data ==\n");
+      for (size_t i = 0; i < 128 && i < bitstream->size(); i++) {
+        if (i % 32 == 0) {
+          printf("\n\t\t\t");
+        }
+        printf("%02X ", bitstream->data()[i]);
+      }
+      printf("\n\t\t\t ... ... ...");
+      // 再输出 bitstream 的后 128 字节，同上
+      printf("\n\t\t\t");
+      for (size_t i = bitstream->size() - 128; i < bitstream->size(); i++) {
+        if (i % 32 == 0) {
+          printf("\n\t\t\t");
+        }
+        printf("%02X ", bitstream->data()[i]);
+      }
+      printf("\n");  
+
       OnAssembledFrame(std::make_unique<RtpFrameObject>(
           first_packet->seq_num(),                              //
           last_packet.seq_num(),                                //

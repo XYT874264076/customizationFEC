@@ -173,6 +173,7 @@ void VideoFrame::insert_frag(Datagram&& datagram, std::shared_ptr<const webrtc::
 void VideoFrame::add_fec_frame(uint16_t fec_frame_num, FrameType frameType,
                                uint8_t num_fec_frames, string& frame)
 {
+    printf("\t\t\t == add_fec_frame\n");
     if (not fec_frames_.count(fec_frame_num))
     {
         fec_frames_[fec_frame_num] = std::move(frame);
@@ -296,6 +297,7 @@ void TamburDecoder::update_fec_recovered_frames()
         VideoFrame& frame = frame_buf_.at(video_frame);
         if (not frame.has_fec_frame(fec_frame))
         {
+            printf("\t\t\t success recover fec_frame\n");
             std::string s = fec_multi_receiver_->recovered_frame(fec_frame);
             frame.add_fec_frame(fec_frame, FrameType{std::get<1>(video_frame_info)},
                                 std::get<2>(video_frame_info), s);

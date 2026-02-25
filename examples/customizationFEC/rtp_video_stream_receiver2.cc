@@ -964,12 +964,52 @@ void RtpVideoStreamReceiver2::ProcessDecodedTamburFrame(
     return;
   }
 
-  // Convert Tambur decoded data to WebRTC format
-  auto image_buffer = EncodedImageBuffer::Create(
-      reinterpret_cast<const uint8_t*>(frame_data.data()), frame_data.size());
+  RTPVideoHeader video_header = first_packet.value()->video_header;
+  video_header.frame_type = frame_info.is_key_frame ? VideoFrameType::kVideoFrameKey
+                                                    : VideoFrameType::kVideoFrameDelta;
 
-  printf("\t\t\t== Receive video header: width:%d\theight:%d\n", first_packet.value()->video_header.width, first_packet.value()->video_header.height);
-  printf("\t\t\t== payload size: %zu", frame_data.size());
+  // Convert Tambur decoded data to WebRTC format
+  // auto image_buffer = EncodedImageBuffer::Create(
+  //     reinterpret_cast<const uint8_t*>(frame_data.data()), frame_data.size());
+
+  rtc::scoped_refptr<EncodedImageBuffer> image_buffer;
+  if (first_packet.value()->codec() == kVideoCodecH264 && !h26x_packet_buffer_) {
+    // Keep tracker payload-type state updated even though we bypass OnReceivedPayloadData.
+    if (first_packet.value()->payload_type != last_payload_type_) {
+      last_payload_type_ = first_packet.value()->payload_type;
+      InsertSpsPpsIntoTracker(first_packet.value()->payload_type);
+    }
+
+    video_coding::H264SpsPpsTracker::FixedBitstream fixed =
+        tracker_.CopyAndFixBitstream(
+            rtc::MakeArrayView(reinterpret_cast<const uint8_t*>(frame_data.data()),
+                               frame_data.size()),
+            &video_header);
+
+    switch (fixed.action) {
+      case video_coding::H264SpsPpsTracker::kRequestKeyframe:
+        rtcp_feedback_buffer_.RequestKeyFrame();
+        rtcp_feedback_buffer_.SendBufferedRtcpFeedback();
+        return;
+      case video_coding::H264SpsPpsTracker::kDrop:
+        return;
+      case video_coding::H264SpsPpsTracker::kInsert:
+        image_buffer = EncodedImageBuffer::Create(
+            reinterpret_cast<const uint8_t*>(fixed.bitstream.cdata()),
+            fixed.bitstream.size());
+        break;
+    }
+  } else {
+    image_buffer = EncodedImageBuffer::Create(reinterpret_cast<const uint8_t*>(frame_data.data()), frame_data.size());
+  }
+
+  if (!image_buffer) {
+    RTC_LOG(LS_WARNING) << "Failed to create EncodedImageBuffer for decoded Tambur frame";
+    return;
+  }
+
+  printf("\t\t\t== Receive video header: width:%d\theight:%d\n", video_header.width, video_header.height);
+  printf("\t\t\t== payload size: %zu", image_buffer->size());
   printf("\t\t\t== first_packet seq_num:%d\t last_packet seq_num:%d\n", first_packet.value()->seq_num(), last_packet.value()->seq_num());
   printf("\t\t\t== max_nack_count:%d\t min_recv_time:%ld\t max_recv_time:%ld\n", 0, frame_info.min_receive_time, frame_info.max_receive_time);
   printf("\t\t\t== payload_type:%d\t codec:%d\t rotation:%d\t content_type:%d\n", first_packet.value()->payload_type, first_packet.value()->codec(), last_packet.value()->video_header.rotation, last_packet.value()->video_header.content_type);
@@ -996,29 +1036,28 @@ void RtpVideoStreamReceiver2::ProcessDecodedTamburFrame(
   // Create RtpFrameObject with complete RTP packet information from TamburDecoder
   const int max_nack_count = 0;     // No retransmission info available
 
-  // Get first_packet video_header
-  RTPVideoHeader first_packet_video_header = first_packet.value()->video_header;
+  rtcp_feedback_buffer_.SendBufferedRtcpFeedback();
   
   // Create RtpFrameObject and call OnAssembledFrame directly
   OnAssembledFrame(std::make_unique<RtpFrameObject>(
-      first_packet.value()->seq_num(),                   // first_seq_num from packets
-      last_packet.value()->seq_num(),                    // last_seq_num from packets
-      last_packet.value()->marker_bit,                   // marker_bit
-      max_nack_count,                            // max_nack_count
-      frame_info.min_receive_time,                  // min_recv_time
-      frame_info.max_receive_time,                  // max_recv_time
-      first_packet.value()->timestamp,                    // timestamp
-      ntp_estimator_.Estimate(first_packet.value()->timestamp),     // ntp_time
-      last_packet.value()->video_header.video_timing,    // video_timing
-      first_packet.value()->payload_type,                   // payload_type from frame_info
-      first_packet.value()->codec(),                     // codec
-      last_packet.value()->video_header.rotation,        // rotation from first packet
-      last_packet.value()->video_header.content_type,     // content_type from first packet
-      first_packet.value()->video_header,                  // video_header from first packet
-      last_packet.value()->video_header.color_space,                              // color_space
-      last_packet.value()->video_header.frame_instrumentation_data,                              // frame_instrumentation_data
-      RtpPacketInfos(),                          // packet_infos
-      std::move(image_buffer)));                // bitstream
+      first_packet.value()->seq_num(),                           // first_seq_num
+      last_packet.value()->seq_num(),                            // last_seq_num
+      last_packet.value()->marker_bit,                           // marker_bit
+      max_nack_count,                                            // max_nack_count
+      frame_info.min_receive_time,                               // min_recv_time
+      frame_info.max_receive_time,                               // max_recv_time
+      first_packet.value()->timestamp,                           // timestamp
+      ntp_estimator_.Estimate(first_packet.value()->timestamp),  // ntp_time
+      last_packet.value()->video_header.video_timing,            // video_timing
+      first_packet.value()->payload_type,                        // payload_type
+      first_packet.value()->codec(),                             // codec
+      last_packet.value()->video_header.rotation,                // rotation
+      last_packet.value()->video_header.content_type,            // content_type
+      video_header,                                              // video_header (fixed)
+      last_packet.value()->video_header.color_space,             // color_space
+      last_packet.value()->video_header.frame_instrumentation_data,  // frame_instrumentation_data
+      RtpPacketInfos(),                                          // packet_infos
+      std::move(image_buffer)));                                 // bitstream
 
   RTC_LOG(LS_INFO) << "Successfully processed Tambur decoded frame through OnAssembledFrame";
 

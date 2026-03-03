@@ -12,10 +12,21 @@
 #include "examples/customizationFEC/Tambur/src/fec/quality_reporter.hh"
 #include "examples/customizationFEC/Tambur/src/fec/logger.hh"
 #include "examples/customizationFEC/Tambur/src/fec/logging/frame_log.hh"
+#include "examples/customizationFEC/Params.h"
 
 class FECMultiReceiver
 {
 public:
+  struct ParityEfrStats
+  {
+    uint64_t rec_frame{0};
+    uint64_t total_parity{0};
+    uint64_t before_decode_parity{0};
+    uint64_t after_decode_parity{0};
+    uint64_t retrans_effective{0};
+    uint64_t retrans_ineffective{0};
+  };
+
   FECMultiReceiver(Code * code, uint8_t tau, uint8_t memory,
       HeaderCode * headerCode, QualityReporter * qualityReporter,
       Logger * logger, uint64_t interval_ms = 2000, bool pad = false,
@@ -33,7 +44,7 @@ public:
   std::optional<std::vector<FECDatagram>> get_frame_pkts(uint16_t frame_num)
       const;
 
-  bool receive_pkt(const std::string & binary_datagram);
+  bool receive_pkt(const std::string & binary_datagram, uint8_t retrans);
 
   bool frame_expired(uint16_t new_frame_num, uint16_t old_frame_num) const;
 
@@ -48,6 +59,8 @@ public:
   std::vector<std::pair<uint16_t, uint32_t>> recovered_video_frames();
 
   uint16_t get_num_frames() { return memory_; }
+
+  const ParityEfrStats & parity_efr_stats() const { return parity_efr_stats_; }
 
 private:
   int index_of_frame(uint16_t frame_num) const;
@@ -70,6 +83,8 @@ private:
 
   void fill_missing_frames(const FECDatagram& pkt);
 
+  void update_parity_efr_stats_before_place_pkt(const FECDatagram & pkt, uint8_t retrans);
+
 private:
   Code * code_;
   uint8_t tau_;
@@ -84,6 +99,8 @@ private:
   bool received_first_frame_{false};
   uint16_t last_received_frame_{0};
   bool video_frame_info_padded_;
+
+  ParityEfrStats parity_efr_stats_{};
 };
 
 #endif /* FEC_MULTI_RECEIVER_HH */

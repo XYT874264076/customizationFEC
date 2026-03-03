@@ -11,7 +11,7 @@ IModuleRLWrapper::IModuleRLWrapper() {
     }
     // py::initialize_interpreter(); // Initialize the Python interpreter
     py::module_ sys = py::module_::import("sys");
-    // sys.attr("path").attr("insert")(0, "/home/ubuntu/Desktop/WebRTC/src/examples/customizationFEC/"); // Add the Python module to search the path
+    // sys.attr("path").attr("insert")(0, "/home/ubuntu/Desktop/WebRTC_SwiftFEC/src/examples/customizationFEC/"); // Add the Python module to search the path
     sys.attr("path").attr("insert")(0, "/home/data/WebRTC_SwiftFEC/webrtc-checkout/src/examples/customizationFEC/"); // Add the Python module to search the path
     py::module_ rl_model = py::module_::import("IModule.modelV3");
     if (inputV::Params::ifSaveI) {

@@ -95,8 +95,8 @@ class TamburDecoder
     ~TamburDecoder() = default;
     
     // Add a received datagram with packet information
-    bool add_datagram(const Datagram & datagram, std::shared_ptr<const webrtc::video_coding::PacketBuffer::Packet> packet);
-    bool add_datagram(Datagram && datagram, std::shared_ptr<const webrtc::video_coding::PacketBuffer::Packet> packet);
+    bool add_datagram(const Datagram & datagram, std::shared_ptr<const webrtc::video_coding::PacketBuffer::Packet> packet, uint8_t retrans);
+    bool add_datagram(Datagram && datagram, std::shared_ptr<const webrtc::video_coding::PacketBuffer::Packet> packet, uint8_t retrans);
 
     // Check if next frame is complete
     bool has_next_frame() const;

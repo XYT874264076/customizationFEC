@@ -34,7 +34,7 @@ FECMultiReceiver::FECMultiReceiver(Code * code, uint8_t tau, uint8_t memory,
       FECDatagram pad {uint32_t(j), false, uint16_t(j), uint64_t(frame_str.size()),
           uint16_t(0), uint16_t(0), frame_str};
       WireParser test (put_number(uint32_t(2147483640)));
-      receive_pkt(pad.serialize_to_string());
+      receive_pkt(pad.serialize_to_string(), 0);
     }
   }
 }
@@ -131,6 +131,67 @@ void FECMultiReceiver::place_pkt_in_frame(const FECDatagram & pkt)
       fl.decode_ts_ = cur_ts;
     }
     fl.all_data_received_ = frames_.at(index).all_data_received();
+  }
+}
+
+void FECMultiReceiver::update_parity_efr_stats_before_place_pkt(const FECDatagram & pkt, uint8_t retrans)
+{
+  if (!pkt.is_parity) {
+    return;
+  }
+
+  parity_efr_stats_.total_parity++;
+
+  const int index = index_of_frame(pkt.frame_num);
+  if (index < 0) {
+    // Frame not yet present in the sliding window -> definitely not decoded.
+    parity_efr_stats_.before_decode_parity++;
+    return;
+  }
+
+  if (frames_.at(index).is_decoded()) {
+    parity_efr_stats_.after_decode_parity++;
+  } else {
+    parity_efr_stats_.before_decode_parity++;
+  }
+
+  if (retrans == 1){
+    if (frames_.at(index).is_decoded()) {
+      parity_efr_stats_.retrans_ineffective++;
+    }
+    else {
+      parity_efr_stats_.retrans_effective++;
+    }
+  }
+
+  if (parity_efr_stats_.rec_frame<pkt.frame_num && pkt.frame_num % 5 == 0) {
+    //Write file!
+    auto now = std::chrono::system_clock::now();
+    auto milliseconds_since_epoch = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
+    std::ofstream TamburEFRLRR(inputV::Params::output+"TamburEFRLRR.csv",std::ios::app);
+    uint8_t EFR;
+    uint8_t LRR;
+    if (parity_efr_stats_.total_parity > 0) {
+      EFR = (uint8_t) ((parity_efr_stats_.after_decode_parity / parity_efr_stats_.total_parity) * 255);
+    }
+    else {
+      EFR = 0;
+    }
+    if (parity_efr_stats_.retrans_effective + parity_efr_stats_.retrans_ineffective > 0) {
+      LRR = (uint8_t) ((parity_efr_stats_.retrans_ineffective / (parity_efr_stats_.retrans_effective + parity_efr_stats_.retrans_ineffective)) * 255);
+    }
+    else {
+      LRR = 0;
+    }
+
+    if (TamburEFRLRR.is_open()) {
+      TamburEFRLRR << milliseconds_since_epoch << "," << EFR << "," << LRR << std::endl;
+      TamburEFRLRR.close();
+    }
+    parity_efr_stats_.rec_frame = pkt.frame_num;
+    parity_efr_stats_.total_parity = 0;
+    parity_efr_stats_.before_decode_parity = 0;
+    parity_efr_stats_.after_decode_parity = 0;
   }
 }
 
@@ -280,7 +341,7 @@ void FECMultiReceiver::terminate()
   }
 }
 
-bool FECMultiReceiver::receive_pkt(const string & binary_datagram)
+bool FECMultiReceiver::receive_pkt(const string & binary_datagram, uint8_t retrans)
 {
   logger_->begin_function("receive_pkt");
   FECDatagram pkt;
@@ -293,6 +354,7 @@ bool FECMultiReceiver::receive_pkt(const string & binary_datagram)
   auto frame_num = pkt.frame_num;
   fill_missing_frames(pkt);
   purge_frames(frame_num);
+  update_parity_efr_stats_before_place_pkt(pkt, retrans);
   place_pkt_in_frame(pkt);
   assert(frames_.size() <= memory_);
   if (pkt.frame_num >= memory_-1){

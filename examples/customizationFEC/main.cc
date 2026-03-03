@@ -199,39 +199,64 @@ int init_output_file(){
     return -1;
   }
 
-  path = inputV::Params::output+"LModule.csv";
-  std::ofstream file8(path);
-  if (file8.is_open()) {
-    file8<<"timestamp,target_bitrate,RTT,s_pck,fps,L\n";
-    file8.close();
+  path = inputV::Params::output+"frame_collector.csv";
+  std::ofstream file12(path);
+  if (file12.is_open()){
+    file12<<"timestamp,frame_first_ts,frame_last_ts\n";
+    file12.close();
   }
   else {
     std::cerr << "Error opening file "<<path<<std::endl;
     return -1;
   }
 
-  path = inputV::Params::output+"IModule.csv";
-  std::ofstream file9(path);
-  if (file9.is_open()) {
-    file9<<"timestamp,EMALR_10_3,EMAEFR_5_2,EMALRR_5_2,I_inv_EMALR_10,EFR_LRR_diff,M_5,EFR,LRR,EMAEFR_5,EMALRR_5,delta_I,M,EMALR_10_3,Reward,cur_baseline_Ireward,I\n";
-    file9.close();
-  }
-  else {
-    std::cerr << "Error opening file "<<path<<std::endl;
-    return -1;
-  }
+  if (inputV::Params::type==inputV::ExpType::RLSRSFEC){
+    path = inputV::Params::output+"LModule.csv";
+    std::ofstream file8(path);
+    if (file8.is_open()) {
+      file8<<"timestamp,target_bitrate,RTT,s_pck,fps,L\n";
+      file8.close();
+    }
+    else {
+      std::cerr << "Error opening file "<<path<<std::endl;
+      return -1;
+    }
 
-  path = inputV::Params::output+"MModule.csv";
-  std::ofstream file10(path);
-  if (file10.is_open()) {
-    file10<<"timestamp,EMAburst_3,EMAburst_3_10,EMALR_3_5_10,StdDevRTT_5,RTT_EMARTT_30,VarJitter_5,I_inv_EMALR_10,EMAM_5,LRR,EMALRR_5,last_M,EMAburst_3,delta_M,Reward,cur_baseline_Mreward,M\n";
-    file10.close();
-  }
-  else {
-    std::cerr << "Error opening file "<<path<<std::endl;
-    return -1;
-  }
+    path = inputV::Params::output+"IModule.csv";
+    std::ofstream file9(path);
+    if (file9.is_open()) {
+      file9<<"timestamp,EMALR_10_3,EMAEFR_5_2,EMALRR_5_2,I_inv_EMALR_10,EFR_LRR_diff,M_5,EFR,LRR,EMAEFR_5,EMALRR_5,delta_I,M,EMALR_10_3,Reward,cur_baseline_Ireward,I\n";
+      file9.close();
+    }
+    else {
+      std::cerr << "Error opening file "<<path<<std::endl;
+      return -1;
+    }
 
+    path = inputV::Params::output+"MModule.csv";
+    std::ofstream file10(path);
+    if (file10.is_open()) {
+      file10<<"timestamp,EMAburst_3,EMAburst_3_10,EMALR_3_5_10,StdDevRTT_5,RTT_EMARTT_30,VarJitter_5,I_inv_EMALR_10,EMAM_5,LRR,EMALRR_5,last_M,EMAburst_3,delta_M,Reward,cur_baseline_Mreward,M\n";
+      file10.close();
+    }
+    else {
+      std::cerr << "Error opening file "<<path<<std::endl;
+      return -1;
+    }
+  }
+  
+  if (inputV::Params::type==inputV::ExpType::TamburFEC){
+    path = inputV::Params::output+"TamburEFRLRR.csv";
+    std::ofstream file11(path);
+    if (file11.is_open()) {
+      file11<<"timestamp,EFR,LRR\n";
+      file11.close();
+    }
+    else {
+      std::cerr << "Error opening file "<<path<<std::endl;
+      return -1;
+    }
+  }
 
   // path = inputV::Params::output+"frame_receiver.csv";
   // std::ofstream file7(path);

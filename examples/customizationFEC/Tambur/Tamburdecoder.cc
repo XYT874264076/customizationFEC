@@ -219,7 +219,7 @@ bool TamburDecoder::add_datagram_common(const Datagram& datagram, std::shared_pt
     return true;
 }
 
-bool TamburDecoder::add_datagram(const Datagram& datagram, std::shared_ptr<const webrtc::video_coding::PacketBuffer::Packet> packet)
+bool TamburDecoder::add_datagram(const Datagram& datagram, std::shared_ptr<const webrtc::video_coding::PacketBuffer::Packet> packet, uint8_t retrans)
 {
     if (not packet) {
         return false;
@@ -231,7 +231,7 @@ bool TamburDecoder::add_datagram(const Datagram& datagram, std::shared_ptr<const
     
     if (fec_multi_receiver_) {
         printf("\t\t\t Run fec_multi_receiver_->receive_pkt(datagram.payload);\n");
-        fec_multi_receiver_->receive_pkt(datagram.payload);
+        fec_multi_receiver_->receive_pkt(datagram.payload, retrans);
     }
     
     // Insert the datagram into the VideoFrame with packet information
@@ -244,7 +244,7 @@ bool TamburDecoder::add_datagram(const Datagram& datagram, std::shared_ptr<const
     return true;
 }
 
-bool TamburDecoder::add_datagram(Datagram&& datagram, std::shared_ptr<const webrtc::video_coding::PacketBuffer::Packet> packet)
+bool TamburDecoder::add_datagram(Datagram&& datagram, std::shared_ptr<const webrtc::video_coding::PacketBuffer::Packet> packet, uint8_t retrans)
 {
     if (not packet) {
         return false;
@@ -256,7 +256,7 @@ bool TamburDecoder::add_datagram(Datagram&& datagram, std::shared_ptr<const webr
     
     if (fec_multi_receiver_) {
         printf("\t\t\t Run fec_multi_receiver_->receive_pkt(datagram.payload);\n");
-        fec_multi_receiver_->receive_pkt(datagram.payload);
+        fec_multi_receiver_->receive_pkt(datagram.payload, retrans);
     }
     
     // Insert the datagram into the VideoFrame with packet information
@@ -264,6 +264,7 @@ bool TamburDecoder::add_datagram(Datagram&& datagram, std::shared_ptr<const webr
     frame_buf_.at(datagram.frame_id).insert_frag(std::move(datagram), packet);
     
     // Verify FEC and check for complete frames
+    printf("\t\t\t Run update_fec_recovered_frames();\n");
     update_fec_recovered_frames();
     
     return true;

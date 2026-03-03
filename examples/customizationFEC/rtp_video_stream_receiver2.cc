@@ -917,7 +917,14 @@ bool RtpVideoStreamReceiver2::ProcessTamburFECPacket(std::shared_ptr<const video
   printf("\n");
 
   // Add datagram to TamburDecoder with complete packet object
-  bool success = tambur_decoder_->add_datagram(datagram, packet);
+  uint8_t retrans;
+  if (rtp_packet.recovered() && rtp_packet.payload()[0] != fec_receiver_->fec_payload_type()) {
+    retrans = 1;
+  }
+  else {
+    retrans = 0;
+  }
+  bool success = tambur_decoder_->add_datagram(datagram, packet, retrans);
   
   if (!success) {
     RTC_LOG(LS_WARNING) << "Failed to add RTP packet to TamburDecoder";

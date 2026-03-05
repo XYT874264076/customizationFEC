@@ -83,8 +83,11 @@ class Conductor : public webrtc::PeerConnectionObserver,
   int32_t stopGetState();
   int32_t startRLState();
   int32_t stopRLState();
+  int32_t startTamburQR();
+  int32_t stopTamburQR();
   bool doGetState();
   bool doFECRLState();
+  bool doTamburQR();
 
   //
   // PeerConnectionObserver implementation.
@@ -143,8 +146,12 @@ class Conductor : public webrtc::PeerConnectionObserver,
   std::chrono::steady_clock::time_point start_rl_time;
   std::chrono::steady_clock::time_point last_rl_time;
   bool rl_state_time_initialize;
+  std::chrono::steady_clock::time_point start_tambur_qr_time;
+  std::chrono::steady_clock::time_point last_tambur_qr_time;
+  bool tambur_qr_time_initialize;
   rtc::PlatformThread _getStateThread;
   rtc::PlatformThread _getRLStateThread;
+  rtc::PlatformThread _getTamburQRThread;
 };
 
 #endif  // EXAMPLES_CUSTOMIZATION_CONDUCTOR_H_

@@ -17,6 +17,9 @@ bool frames_are_out_of_order(const deque<Frame> & frames)
   for (auto it = frames.cbegin(); it != frames.cend(); ++it) {
     uint16_t next_frame_num = (*it).get_frame_num();
     if (order_is_switched(next_frame_num, previous_frame_num)) {
+
+      printf("frames are out of order, next_frame_num: %u, previous_frame_num: %u\n", next_frame_num, previous_frame_num);
+
       return true;
     }
     previous_frame_num = next_frame_num;

@@ -1,7 +1,10 @@
 #include <cassert>
+#include <chrono>
+#include <fstream>
 
 #include "examples/customizationFEC/Tambur/src/fec/frame_generator.hh"
 #include "examples/customizationFEC/Tambur/src/util/serialization.hh"
+#include "examples/customizationFEC/Params.h"
 using namespace std;
 
 FrameGenerator::FrameGenerator(Code * code, uint8_t tau,
@@ -137,6 +140,7 @@ void FrameGenerator::update_frame_sizes(uint16_t frame_size)
 vector<FECDatagram> FrameGenerator::generate_frame_pkts(uint64_t frame_size, uint32_t video_frame_num, uint8_t frameType,
     uint8_t num_frames_in_video_frame, uint8_t * frame)
 {
+  state_ = transV::Params::tambur_qr_state;
   logger_->begin_function("generate_frame_pkts");
   update_frame_sizes(frame_size);
   const auto frame_pkts_info = packetization_->get_packetization(frame_size,
@@ -146,8 +150,26 @@ vector<FECDatagram> FrameGenerator::generate_frame_pkts(uint64_t frame_size, uin
   const auto data_pkts = generate_frame_data_pkts(frame_pkts_info, frame_size,
       frame, video_frame_num, frameType,
       num_frames_in_video_frame);
+
+  auto encode_fec_start = std::chrono::steady_clock::now();
+
   const auto parity_pkts = generate_frame_parity_pkts(data_pkts, frame_pkts_info,
       frame_size);
+
+  auto encode_fec_end = std::chrono::steady_clock::now();
+  int64_t encode_duration = std::chrono::duration_cast<std::chrono::microseconds>(encode_fec_end - encode_fec_start).count();
+  uint32_t encode_size = data_pkts.size();
+  uint32_t frame_num = frame_num_;
+
+  //Write file!
+  auto now = std::chrono::system_clock::now();
+  auto milliseconds_since_epoch = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
+  std::ofstream encode_file(inputV::Params::output+"encode_duration.csv",std::ios::app);
+  encode_file<<milliseconds_since_epoch<<","<<frame_num<<","<<encode_duration<<","<<encode_size<<std::endl;
+  encode_file.close();
+  
+  printf("\t\t\t generate_frame_pkts: data_pkts.size() = %lu, parity_pkts.size() = %lu\n", data_pkts.size(), parity_pkts.size());
+
   uint8_t data_index = 0;
   uint8_t parity_index = 0;
   for (uint8_t index = 0; index < frame_pkts_info.size(); index++) {

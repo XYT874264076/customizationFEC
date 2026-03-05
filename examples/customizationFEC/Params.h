@@ -305,6 +305,9 @@ public:
 
  // note if the python interpreter has been init!
  static int py_init;
+
+ // Tambur trans params qr
+ static uint8_t tambur_qr_state;
 };
 
 template<typename T> std::string list_tostring(const std::list<T>& cur_list) {

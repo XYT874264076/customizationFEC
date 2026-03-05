@@ -78,6 +78,7 @@ void VideoFrame::validate_datagram(const Datagram& datagram) const
 {
     printf("\t\t\t datagram.frag_cnt: %d\n", datagram.frag_cnt);
     printf("\t\t\t frags_.size(): %zu\n", frags_.size());
+    printf("\t\t\t datagram.frame_type: %d   type_: %d\n", datagram.frame_type, type_);
     assert(datagram.frame_id == id_ && "unable to insert an incompatible datagram");
     assert(datagram.frame_type == type_ && "unable to insert an incompatible datagram");
     assert(datagram.frag_id < frags_.size() && "unable to insert an incompatible datagram");
@@ -174,6 +175,7 @@ void VideoFrame::add_fec_frame(uint16_t fec_frame_num, FrameType frameType,
                                uint8_t num_fec_frames, string& frame)
 {
     printf("\t\t\t == add_fec_frame\n");
+    printf("\t\t\t == set type_ from %d to %d", type_, frameType);
     if (not fec_frames_.count(fec_frame_num))
     {
         fec_frames_[fec_frame_num] = std::move(frame);
@@ -239,6 +241,7 @@ bool TamburDecoder::add_datagram(const Datagram& datagram, std::shared_ptr<const
     frame_buf_.at(datagram.frame_id).insert_frag(datagram, packet);
     
     // Verify FEC and check for complete frames
+    printf("\t\t\t Run update_fec_recovered_frames();\n");
     update_fec_recovered_frames();
     
     return true;

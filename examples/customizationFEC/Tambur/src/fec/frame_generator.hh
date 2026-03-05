@@ -8,6 +8,7 @@
 #include "examples/customizationFEC/Tambur/src/fec/header_code.hh"
 #include "examples/customizationFEC/Tambur/src/fec/code.hh"
 #include "examples/customizationFEC/Tambur/src/fec/logger.hh"
+#include "examples/customizationFEC/Params.h"
 
 class FrameGenerator
 {

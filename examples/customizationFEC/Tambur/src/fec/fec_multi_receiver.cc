@@ -2,6 +2,8 @@
 #include <chrono>
 #include <optional>
 #include <cassert>
+#include <chrono>
+#include <fstream>
 using namespace std::chrono;
 
 #include "examples/customizationFEC/Tambur/src/fec/fec_multi_receiver.hh"
@@ -9,6 +11,7 @@ using namespace std::chrono;
 #include "examples/customizationFEC/Tambur/src/fec/fec_datagram.hh"
 #include "examples/customizationFEC/Tambur/src/fec/streaming_code/streaming_code.hh"
 #include "examples/customizationFEC/Tambur/src/util/serialization.hh"
+#include "examples/customizationFEC/Params.h"
 
 using namespace std;
 
@@ -94,6 +97,9 @@ void FECMultiReceiver::purge_frames(uint16_t frame_num)
   if (num_frames_stored == 0) { return; }
   while (!frames_.empty() and frame_expired(frame_num, frames_.front().get_frame_num()))
   {
+
+    printf("\t\t\t purge_frames because of frame_expired frame_num: %d\n", frames_.front().get_frame_num());
+
     qualityReporter_->receive_frame(frames_.front());
     logger_->add_frame(frames_.front(), frames_log_.front());
     frames_.pop_front();
@@ -107,6 +113,8 @@ void FECMultiReceiver::place_pkt_in_frame(const FECDatagram & pkt)
   int index = index_of_frame(frame_num);
   if (index < 0) {
     add_new_frame(pkt, true);
+
+    printf("\t\t\t === add_new_frame(finish) frame_num: %d\n", pkt.frame_num);
   }
   else {
     frames_.at(index).add_pkt(pkt);
@@ -136,31 +144,33 @@ void FECMultiReceiver::place_pkt_in_frame(const FECDatagram & pkt)
 
 void FECMultiReceiver::update_parity_efr_stats_before_place_pkt(const FECDatagram & pkt, uint8_t retrans)
 {
-  if (!pkt.is_parity) {
-    return;
-  }
 
-  parity_efr_stats_.total_parity++;
+  if (pkt.is_parity){
+    parity_efr_stats_.total_parity++;
 
-  const int index = index_of_frame(pkt.frame_num);
-  if (index < 0) {
-    // Frame not yet present in the sliding window -> definitely not decoded.
-    parity_efr_stats_.before_decode_parity++;
-    return;
-  }
-
-  if (frames_.at(index).is_decoded()) {
-    parity_efr_stats_.after_decode_parity++;
-  } else {
-    parity_efr_stats_.before_decode_parity++;
-  }
-
-  if (retrans == 1){
-    if (frames_.at(index).is_decoded()) {
-      parity_efr_stats_.retrans_ineffective++;
+    const int index = index_of_frame(pkt.frame_num);
+    if (index < 0) {
+      // Frame not yet present in the sliding window -> definitely not decoded.
+      parity_efr_stats_.before_decode_parity++;
+      return;
     }
-    else {
-      parity_efr_stats_.retrans_effective++;
+
+    if (frames_.at(index).is_decoded()) {
+      parity_efr_stats_.after_decode_parity++;
+    } else {
+      parity_efr_stats_.before_decode_parity++;
+    }
+  }
+
+  if (!pkt.is_parity) {
+    if (retrans == 1){
+      const int index = index_of_frame(pkt.frame_num);
+      if (frames_.at(index).is_decoded()) {
+        parity_efr_stats_.retrans_ineffective++;
+      }
+      else {
+        parity_efr_stats_.retrans_effective++;
+      }
     }
   }
 
@@ -209,6 +219,8 @@ void FECMultiReceiver::add_new_frame(const FECDatagram & pkt, bool is_valid_pkt)
 
   it = frames_.emplace(it, pkt.frame_num, !is_valid_pkt);
   log_it = frames_log_.emplace(log_it, pkt.frame_num);
+
+  printf("\t\t\t === add_new_frame frame_num: %d\n", pkt.frame_num);
 
   if (!is_valid_pkt) {
     return;
@@ -259,7 +271,22 @@ void FECMultiReceiver::update_payloads(
       log_it->decoded_after_frames_ = std::distance(it, frames_.end()) - 1;
       log_it->decode_ts_ = timestamp_us();
       if (it->get_frame_val().size() != it->get_frame_size().value()) {
+
+        auto decode_fec_start = std::chrono::steady_clock::now();
+
         string frame = code_->recovered_frame(it->get_frame_num(), (uint16_t) it->get_frame_size().value());
+
+        auto decode_fec_end = std::chrono::steady_clock::now();
+        int64_t decode_duration = std::chrono::duration_cast<std::chrono::microseconds>(decode_fec_end - decode_fec_start).count();
+        uint32_t frame_num = it->get_frame_num();
+
+        //Write file!
+        auto now = std::chrono::system_clock::now();
+        auto milliseconds_since_epoch = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
+        std::ofstream decode_file(inputV::Params::output+"TamburDecode.csv",std::ios::app);
+        decode_file<<milliseconds_since_epoch<<","<<frame_num<<","<<decode_duration<<std::endl;
+        decode_file.close();
+
         if (video_frame_info_padded_) {
           string video_frame_info = frame.substr(frame.size() -
               FECDatagram::VIDEO_FRAME_INFO_SIZE,
@@ -268,6 +295,9 @@ void FECMultiReceiver::update_payloads(
           uint8_t frameType = parser.read_uint8();
           uint8_t num_frames_in_video_frame = parser.read_uint8();
           uint32_t video_frame_num = parser.read_uint32();
+
+          printf("\t\t\t === set_video_frame_info(update_payloads) frame_num: %d\n", video_frame_num);
+
           it->set_video_frame_info(video_frame_num, frameType,
               num_frames_in_video_frame);
           frame.erase(frame.size() -
@@ -287,6 +317,9 @@ void FECMultiReceiver::decode_headers(FECDatagram const& pkt)
 
 void FECMultiReceiver::decode_payloads(FECDatagram const& pkt)
 {
+
+  printf("\t\t\t === decode_payloads frame_num: %d\n", pkt.frame_num);
+
   code_->add_packet(pkt, pkt.frame_num);
   std::vector<std::optional<uint64_t>> frame_sizes;
   if (frames_.size() < memory_) {
@@ -306,7 +339,13 @@ void FECMultiReceiver::decode_payloads(FECDatagram const& pkt)
     if (code_->is_frame_recovered(fr.get_frame_num(), fr.get_frame_size().value())) {
       decode_info.push_back(fr.get_frame_num());
       fr.set_decoded();
+
+      printf("\t\t\t === frame is_decoded frame_num: %d\n", fr.get_frame_num());
+
       if (fr.get_frame_val().size() != fr.get_frame_size().value()) {
+
+        printf("\t\t\t === frame size not equal fr.get_frame_val().size(): %zu, fr.get_frame_size().value(): %zu\n", fr.get_frame_val().size(), fr.get_frame_size().value());
+
         string frame = code_->recovered_frame(fr.get_frame_num(), (uint16_t) fr.get_frame_size().value());
         if (video_frame_info_padded_) {
           string video_frame_info = frame.substr(frame.size() -
@@ -316,6 +355,9 @@ void FECMultiReceiver::decode_payloads(FECDatagram const& pkt)
           uint8_t frameType = parser.read_uint8();
           uint8_t num_frames_in_video_frame = parser.read_uint8();
           uint32_t video_frame_num = parser.read_uint32();
+
+          printf("\t\t\t === set_video_frame_info(decode_payloads) frame_num: %d\n", video_frame_num);
+
           fr.set_video_frame_info(video_frame_num, frameType,
               num_frames_in_video_frame);
           frame.erase(frame.size() -
@@ -351,6 +393,20 @@ bool FECMultiReceiver::receive_pkt(const string & binary_datagram, uint8_t retra
     std::cerr << "received [SENTINEL]" << std::endl;
     return false;
   }
+
+  // Tambur 的缺陷，不能使用 NACK 重传，乱序会直接报错 ... 所以暂时只能用这一套方案
+  // Scheme A: Tambur receiver components (StreamingCode/QualityReporter) assume
+  // packets are provided in non-decreasing `frame_num` order.
+  // WebRTC may deliver late packets (e.g., due to NACK/RTX). Ignore packets from
+  // older frames to avoid timeslot/frame order assertions.
+  if (received_first_frame_ && pkt.frame_num < last_received_frame_) {
+    // Optionally keep this print while stabilizing the integration.
+    printf("\t\t\t drop late pkt frame_num=%u last=%u retrans=%u is_parity=%d\n",
+           pkt.frame_num, last_received_frame_, retrans, int(pkt.is_parity));
+    logger_->end_function();
+    return true;
+  }
+  
   auto frame_num = pkt.frame_num;
   fill_missing_frames(pkt);
   purge_frames(frame_num);
@@ -394,12 +450,18 @@ std::string FECMultiReceiver::recovered_frame(uint16_t frame_num)
 
 void FECMultiReceiver::fill_missing_frames(const FECDatagram& pkt)
 {
-  if ( received_first_frame_ && (pkt.frame_num == last_received_frame_ || pkt.frame_num == last_received_frame_+1)) {
+  if ( received_first_frame_ && (pkt.frame_num <= last_received_frame_ || pkt.frame_num == last_received_frame_+1)) {
     return;
   }
   uint16_t start_frame_num = received_first_frame_ ? last_received_frame_ + 1 : 0;
+
+  printf("\t\t\t === fill missing frames start_frame_num: %d  to: %d\n", start_frame_num, pkt.frame_num);
+
   while (start_frame_num != pkt.frame_num) {
     FECDatagram dummy_pkt{uint16_t(0), false, start_frame_num, 0, uint8_t(0), uint8_t(0), ""};
+
+    printf("\t\t\t === fill missing frames %d\n", start_frame_num);
+
     add_new_frame(dummy_pkt, false);
     start_frame_num++;
   }

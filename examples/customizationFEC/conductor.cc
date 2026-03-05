@@ -180,6 +180,13 @@ class RTCStatsObserver : virtual public webrtc::RTCStatsCollectorCallback {
                            << item["roundTripTime"].asDouble() << ","
                            << item["totalRoundTripTime"].asDouble() << ","
                            << item["roundTripTimeMeasurements"].asUInt64() << "\n";
+              // const double fraction_lost = item["fractionLost"].asDouble();
+              // uint8_t new_qr = 0;
+              // printf("\t\t\t === fraction_lost: %f\n", fraction_lost);
+              // if (fraction_lost > 0.0) {
+              //   new_qr = 1;
+              // }
+              // transV::Params::tambur_qr_state = new_qr;
          } else if (type == "remote-outbound-rtp") {
              remoteoutbound << item["timestamp"].asUInt64() << ","
                             << item["packetsSent"].asUInt64() << ","
@@ -437,12 +444,19 @@ class FECStatsObserver : virtual public webrtc::RTCStatsCollectorCallback {
          }
      }
 
+      int64_t L_module_duration_us, I_module_duration_us, M_module_duration_us;
+
+      auto L_module_start = std::chrono::steady_clock::now();
+
       if (transV::Params::do_RL_times>=5 && transV::checkLState(L_params)) {
           transV::Params::L = getL(L_params);
       }
       else {
           transV::Params::L = 32;
       }
+
+      auto L_module_end = std::chrono::steady_clock::now();
+      L_module_duration_us = std::chrono::duration_cast<std::chrono::microseconds>(L_module_end - L_module_start).count();
      
       double cur_IReward = 0;
       double cur_baseline_Ireward = 0;
@@ -462,7 +476,14 @@ class FECStatsObserver : virtual public webrtc::RTCStatsCollectorCallback {
             cur_IReward = cur_reward;
             cur_baseline_Ireward = cur_reward - transV::Params::baseline_Ireward;
             auto rl_model = IModuleRLWrapper::get_instance();
+
+            auto I_module_start = std::chrono::steady_clock::now();
+
             transV::Params::delta_I = static_cast<int> (rl_model.predict(cur_state, cur_reward - transV::Params::baseline_Ireward));
+
+            auto I_module_end = std::chrono::steady_clock::now();
+            I_module_duration_us = std::chrono::duration_cast<std::chrono::microseconds>(I_module_end - I_module_start).count();
+
             transV::Params::I = transV::Params::I + transV::Params::delta_I;
             if (transV::Params::baseline_Ireward == 0) {
               transV::Params::baseline_Ireward = cur_reward;
@@ -514,7 +535,14 @@ class FECStatsObserver : virtual public webrtc::RTCStatsCollectorCallback {
             cur_baseline_Mreward = cur_reward - transV::Params::baseline_Mreward;
             std::cout<<"Get MModule Instance?"<<std::endl;
             auto rl_model = MModuleRLWrapper::get_instance();
+
+            auto M_module_start = std::chrono::steady_clock::now();
+
             transV::Params::M = static_cast<uint32_t> (rl_model.predict(cur_state, cur_reward - transV::Params::baseline_Mreward));
+
+            auto M_module_end = std::chrono::steady_clock::now();
+            M_module_duration_us = std::chrono::duration_cast<std::chrono::microseconds>(M_module_end - M_module_start).count();
+
             if (transV::Params::baseline_Mreward == 0) {
               transV::Params::baseline_Mreward = cur_reward;
             }
@@ -566,7 +594,8 @@ class FECStatsObserver : virtual public webrtc::RTCStatsCollectorCallback {
                     << L_params.RTT << ","
                     << L_params.s_pck << ","
                     << L_params.fps << ","
-                    << transV::Params::L << "\n";
+                    << transV::Params::L << ","
+                    << L_module_duration_us << "\n";
      }
     
      // write IModule.csv
@@ -588,7 +617,8 @@ class FECStatsObserver : virtual public webrtc::RTCStatsCollectorCallback {
                     << I_rewards.EMALR_10_3 << ","
                     << cur_IReward << ","
                     << cur_baseline_Ireward << ","
-                    << transV::Params::I << "\n";
+                    << transV::Params::I << ","
+                    << I_module_duration_us << "\n";
      }
 
      // write MModule.csv
@@ -610,7 +640,51 @@ class FECStatsObserver : virtual public webrtc::RTCStatsCollectorCallback {
                     << M_rewards.delta_M << ","
                     << cur_MReward << ","
                     << cur_baseline_Mreward << ","
-                    << transV::Params::M << "\n";
+                    << transV::Params::M << ","
+                    << M_module_duration_us << "\n";
+     }
+   }
+};
+
+class TamburStatsObserver : virtual public webrtc::RTCStatsCollectorCallback {
+  public:
+   virtual void OnStatsDelivered(const rtc::scoped_refptr<const webrtc::RTCStatsReport>& report){
+
+    printf("\t\t\t === TamburStatsObserver\n");
+
+     std::string jsonStr = report->ToJson();
+     Json::Value root;
+     Json::Reader reader;
+ 
+     if (!reader.parse(jsonStr, root)){
+       std::cerr << "Failed to parse JSON: " << reader.getFormatedErrorMessages();
+       return;
+     }
+ 
+     // Do parameters assign!
+     for (const auto& item : root) {
+         std::string type = item["type"].asString();
+         if (type == "inbound-rtp") {
+            
+         } else if (type == "outbound-rtp") {
+
+         } else if (type == "candidate-pair" && item["packetsReceived"].asUInt64()>0) {
+
+         } else if (type == "remote-inbound-rtp") {
+
+            const double fraction_lost = item["fractionLost"].asDouble();
+            uint8_t new_qr = 0;
+            printf("\t\t\t === fraction_lost: %f\n", fraction_lost);
+            if (fraction_lost > 0.0) {
+              new_qr = 1;
+            }
+            transV::Params::tambur_qr_state = new_qr;
+
+         } else if (type == "remote-outbound-rtp") {
+            
+         } else if (type == "remote-fec-receiver") {
+
+         }
      }
    }
 };
@@ -707,6 +781,7 @@ bool Conductor::InitializePeerConnection() {
   peer_connection_factory_ = webrtc::CreateModularPeerConnectionFactory(std::move(deps));
   state_time_initialize = false;
   rl_state_time_initialize = false;
+  tambur_qr_time_initialize = false;
 
   if (!peer_connection_factory_) {
     DeletePeerConnection();
@@ -821,12 +896,51 @@ int32_t Conductor::startRLState() {
   }
 }
 
+int32_t Conductor::startTamburQR() {
+
+  if (state_!=CONNECTTOPEER){
+    if (!_getTamburQRThread.empty()){
+      stopTamburQR();
+      return -1;
+    }
+    else {
+      return -1;
+    }
+  }
+
+  if (_getTamburQRThread.empty()){
+    _getTamburQRThread = rtc::PlatformThread::SpawnJoinable(
+      [this] {
+        while (doTamburQR()){
+        }
+      },
+      "getTamburQRThread",
+      rtc::ThreadAttributes().SetPriority(rtc::ThreadPriority::kHigh)
+    );
+    return 0;
+  }
+  else {
+    RTC_LOG(LS_INFO) << __FUNCTION__ << " : getTamburQRThread has been started! Just Return!\n";
+    return 0;
+  }
+}
+
 int32_t Conductor::stopRLState(){
   if (!_getRLStateThread.empty()){
     _getRLStateThread.Finalize();
   }
 
   rl_state_time_initialize = false;
+
+  return 0;
+}
+
+int32_t Conductor::stopTamburQR(){
+  if (!_getTamburQRThread.empty()){
+    _getTamburQRThread.Finalize();
+  }
+
+  tambur_qr_time_initialize = false;
 
   return 0;
 }
@@ -890,6 +1004,36 @@ bool Conductor::doFECRLState(){
   return true;
 }
 
+bool Conductor::doTamburQR(){
+
+  printf("\t\t\t === doTamburQR\n");
+
+  if (state_!=CONNECTTOPEER){
+    printf("\t\t\t === doTamburQR false?\n");
+    return false;
+  }
+  auto now = std::chrono::steady_clock::now();
+  if (!tambur_qr_time_initialize){
+    start_tambur_qr_time = now;
+    last_tambur_qr_time = now - std::chrono::milliseconds(int64_t(inputV::Params::interval_ms));
+    tambur_qr_time_initialize = true;
+  }
+
+  double elapsed_time = std::chrono::duration<double>(now-start_tambur_qr_time).count();
+  double state_time = std::chrono::duration<double>(last_tambur_qr_time-start_tambur_qr_time).count()+double(inputV::Params::interval_ms)/1000;
+  if (elapsed_time < state_time){
+    std::this_thread::sleep_for(std::chrono::duration<double>(state_time - elapsed_time));
+  }
+  now = std::chrono::steady_clock::now();
+  elapsed_time = std::chrono::duration<double>(now-start_tambur_qr_time).count();
+  last_tambur_qr_time = now;
+
+  rtc::scoped_refptr<TamburStatsObserver> tambur_qr_observer_;
+  tambur_qr_observer_ = new rtc::RefCountedObject<TamburStatsObserver>();
+  peer_connection_->GetStats(tambur_qr_observer_.get());
+
+  return true;
+}
 
 //
 // PeerConnectionObserver implementation.
@@ -965,6 +1109,10 @@ void Conductor::OnMessageFromPeer(const std::string& message) {
       if (inputV::Params::type == inputV::ExpType::RLSRSFEC || inputV::Params::type == inputV::ExpType::RSFECStreamStableRate) {
         startRLState();
       }
+      // if (inputV::Params::type == inputV::ExpType::TamburFEC) {
+      //   printf("\t\t\t === startTamburQR\n");
+      //   startTamburQR();
+      // }
     }
   }
 
@@ -1065,6 +1213,10 @@ void Conductor::ConnectToPeer() {
     if (inputV::Params::type == inputV::ExpType::RLSRSFEC || inputV::Params::type == inputV::ExpType::RSFECStreamStableRate) {
       startRLState();
     }
+    // if (inputV::Params::type == inputV::ExpType::TamburFEC) {
+    //   printf("\t\t\t === startTamburQR\n");
+    //   startTamburQR();
+    // }
     peer_connection_->CreateOffer(this, webrtc::PeerConnectionInterface::RTCOfferAnswerOptions());
   }
 }

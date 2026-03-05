@@ -544,26 +544,26 @@ bool RTPSenderVideo::SendVideo(int payload_type,
                                std::vector<uint32_t> csrcs) {
   RTC_CHECK_RUNS_SERIALIZED(&send_checker_);
 
-  printf("\n\n\t\t\t======Run RTPSenderVideo::SendVideo\n");
-  // 输出 video_header 信息
-  printf("\t\t\t======video_header: width:%d   height:%d\n", video_header.width, video_header.height);
-  // 输出 payload 的前 128 字节，用十六进制输出，例如 AA BB CC 这样，每 32 字节一行
-  printf("\t\t\t======payload size: %zu\n", payload.size());
-  for (size_t i = 0; i < payload.size() && i < 128; i++) {
-    if (i % 32 == 0) {
-      printf("\n\t\t\t");
-    }
-    printf("%02X ", payload[i]);
-  }
-  printf("\n\t\t\t ... ... ...");
-  // 再输出 payload 的后 128 字节，同上
-  for (size_t i = payload.size() - 128; i < payload.size(); i++) {
-    if ((payload.size()-i) % 32 == 0) {
-      printf("\n\t\t\t");
-    }
-    printf("%02X ", payload[i]);
-  }
-  printf("\n");
+  // printf("\n\n\t\t\t======Run RTPSenderVideo::SendVideo\n");
+  // // 输出 video_header 信息
+  // printf("\t\t\t======video_header: width:%d   height:%d\n", video_header.width, video_header.height);
+  // // 输出 payload 的前 128 字节，用十六进制输出，例如 AA BB CC 这样，每 32 字节一行
+  // printf("\t\t\t======payload size: %zu\n", payload.size());
+  // for (size_t i = 0; i < payload.size() && i < 128; i++) {
+  //   if (i % 32 == 0) {
+  //     printf("\n\t\t\t");
+  //   }
+  //   printf("%02X ", payload[i]);
+  // }
+  // printf("\n\t\t\t ... ... ...");
+  // // 再输出 payload 的后 128 字节，同上
+  // for (size_t i = payload.size() - 128; i < payload.size(); i++) {
+  //   if ((payload.size()-i) % 32 == 0) {
+  //     printf("\n\t\t\t");
+  //   }
+  //   printf("%02X ", payload[i]);
+  // }
+  // printf("\n");
 
   // Check if we should use Tambur FEC
   if (inputV::Params::type == inputV::ExpType::TamburFEC) {
@@ -1108,39 +1108,39 @@ bool RTPSenderVideo::SendVideoWithTamburFEC(
     return false;
   }
 
-  printf("\t\t\t Tambur FEC generated %lu packets\n", tambur_packets.size());
+  // printf("\t\t\t Tambur FEC generated %lu packets\n", tambur_packets.size());
 
-  // 依次输出每个 packet 的前 40 个字节，以16进制输出，例如 AA BB CC 这样，输出到一行即可，缩进为 \t\t\t\t，一个数据包一行，开头为 packet x: 
-  for (size_t i = 0; i < tambur_packets.size(); i++) {
-    printf("\t\t\t\t packet %lu: ", i);
-    const char* packet_data = tambur_packets[i].payload.data();
-    size_t data_len = tambur_packets[i].payload.size();
-    for (size_t j = 0; j < 40 && j < data_len; j++) {
-      printf("%02X ", (unsigned char)packet_data[j]);
-    }
-    printf("    size: %lu", tambur_packets[i].payload.size());
-    printf("\n");
+  // // 依次输出每个 packet 的前 40 个字节，以16进制输出，例如 AA BB CC 这样，输出到一行即可，缩进为 \t\t\t\t，一个数据包一行，开头为 packet x: 
+  // for (size_t i = 0; i < tambur_packets.size(); i++) {
+  //   printf("\t\t\t\t packet %lu: ", i);
+  //   const char* packet_data = tambur_packets[i].payload.data();
+  //   size_t data_len = tambur_packets[i].payload.size();
+  //   for (size_t j = 0; j < 40 && j < data_len; j++) {
+  //     printf("%02X ", (unsigned char)packet_data[j]);
+  //   }
+  //   printf("    size: %lu", tambur_packets[i].payload.size());
+  //   printf("\n");
 
-    printf("\t\t\t\t datagram.frame_id: %hu   datagram.frag_id: %hu    datagram.frag_cnt: %hu\n", 
-           tambur_packets[i].frame_id, tambur_packets[i].frag_id, tambur_packets[i].frag_cnt);
-    printf("\n");
-  }
+  //   printf("\t\t\t\t datagram.frame_id: %hu   datagram.frag_id: %hu    datagram.frag_cnt: %hu    ", 
+  //          tambur_packets[i].frame_id, tambur_packets[i].frag_id, tambur_packets[i].frag_cnt);
+  //   printf("\n");
+  // }
 
   // Convert Tambur packets to WebRTC RTP packets
   std::vector<std::unique_ptr<RtpPacketToSend>> rtp_packets = 
       ConvertTamburPacketsToRtp(tambur_packets, rtp_timestamp, payload_type, 
                                video_header, csrcs);
 
-  printf("\t\t\t Convert to %lu RTP packets\n", rtp_packets.size());
-  // 依次输出每个 packet 的前 40 个字节，以16进制输出，例如 AA BB CC 这样，输出到一行即可，缩进为 \t\t\t\t，一个数据包一行，开头为 packet x:
-  for (size_t i = 0; i < rtp_packets.size(); i++) {
-    printf("\t\t\t\t packet %lu（size:%zu）: ", i, rtp_packets[i]->size());
-    for (size_t j = 0; j < 40 && j < rtp_packets[i]->size(); j++) {
-      printf("%02X ", rtp_packets[i]->data()[j]);
-    }
-    printf("    size: %zu", rtp_packets[i]->size());
-    printf("\n");
-  }
+  // printf("\t\t\t Convert to %lu RTP packets\n", rtp_packets.size());
+  // // 依次输出每个 packet 的前 40 个字节，以16进制输出，例如 AA BB CC 这样，输出到一行即可，缩进为 \t\t\t\t，一个数据包一行，开头为 packet x:
+  // for (size_t i = 0; i < rtp_packets.size(); i++) {
+  //   printf("\t\t\t\t packet %lu（size:%zu）: ", i, rtp_packets[i]->size());
+  //   for (size_t j = 0; j < 40 && j < rtp_packets[i]->size(); j++) {
+  //     printf("%02X ", rtp_packets[i]->data()[j]);
+  //   }
+  //   printf("    size: %zu", rtp_packets[i]->size());
+  //   printf("\n");
+  // }
   
   if (rtp_packets.empty()) {
     RTC_LOG(LS_ERROR) << "Failed to convert Tambur packets to RTP packets";

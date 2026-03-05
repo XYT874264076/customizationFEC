@@ -7,6 +7,8 @@
 #include <utility>
 #include <cstdio>
 #include <iostream>
+#include <chrono>
+#include <fstream>
 
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
 #include "modules/rtp_rtcp/source/byte_io.h"
@@ -151,7 +153,21 @@ void StreamRSfecGenerator::AddPacketAndGenerateFec(const RtpPacketToSend& packet
 
         // std::cout<<"==Run fec_->EncodeRSFec() to Generate FEC Packets"<<std::endl;
 
+        auto encode_fec_start = env_.clock().CurrentTime();
+
         int ret = fec_->EncodeRSFec(media_packets_, 0, &generated_fec_packets_);
+
+        auto encode_fec_end = env_.clock().CurrentTime();
+        int64_t encode_duration = (encode_fec_end - encode_fec_start).us();
+        uint32_t encode_size = media_packets_.size();
+      
+        //Write file!
+        auto now = std::chrono::system_clock::now();
+        auto milliseconds_since_epoch = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
+        std::ofstream encode_file(inputV::Params::output+"encode_duration.csv",std::ios::app);
+        encode_file<<milliseconds_since_epoch<<",,"<<encode_duration<<","<<encode_size<<std::endl;
+        encode_file.close();
+
         if (generated_fec_packets_.empty() || ret == -1) {
             
             // std::cout<<"Generate FEC Error!"<<std::endl;
@@ -170,7 +186,21 @@ void StreamRSfecGenerator::AddPacketAndGenerateFec(const RtpPacketToSend& packet
 
         // std::cout<<"==Run fec_->EncodeRSFec() to Generate FEC Packets"<<std::endl;
 
+        auto encode_fec_start = env_.clock().CurrentTime();
+
         int ret = fec_->EncodeRSFec(media_packets_, 0, &generated_fec_packets_);
+
+        auto encode_fec_end = env_.clock().CurrentTime();
+        int64_t encode_duration = (encode_fec_end - encode_fec_start).us();
+        uint32_t encode_size = media_packets_.size();
+      
+        //Write file!
+        auto now = std::chrono::system_clock::now();
+        auto milliseconds_since_epoch = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
+        std::ofstream encode_file(inputV::Params::output+"encode_duration.csv",std::ios::app);
+        encode_file<<milliseconds_since_epoch<<",,"<<encode_duration<<","<<encode_size<<std::endl;
+        encode_file.close();
+
         if (generated_fec_packets_.empty() || ret == -1) {
             
             // std::cout<<"Generate FEC Error!"<<std::endl;
@@ -251,7 +281,21 @@ void StreamRSfecGenerator::AddPacketAndGenerateFec(const RtpPacketToSend& packet
     if (media_packets_.size() > 0 && num_media_packets_insert_ >= static_cast<int>(transV::Params::I)) {
       // std::cout<<"==Run fec_->EncodeRSFec() to Generate FEC Packets"<<std::endl;
 
+      auto encode_fec_start = env_.clock().CurrentTime();
+
       int ret = fec_->EncodeRSFec(media_packets_, 0, &generated_fec_packets_);
+
+      auto encode_fec_end = env_.clock().CurrentTime();
+      int64_t encode_duration = (encode_fec_end - encode_fec_start).us();
+      uint32_t encode_size = media_packets_.size();
+    
+      //Write file!
+      auto now = std::chrono::system_clock::now();
+      auto milliseconds_since_epoch = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
+      std::ofstream encode_file(inputV::Params::output+"encode_duration.csv",std::ios::app);
+      encode_file<<milliseconds_since_epoch<<",,"<<encode_duration<<","<<encode_size<<std::endl;
+      encode_file.close();
+
       if (generated_fec_packets_.empty() || ret == -1) {
           
           // std::cout<<"Generate FEC Error!"<<std::endl;

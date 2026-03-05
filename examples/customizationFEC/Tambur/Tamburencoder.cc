@@ -22,6 +22,9 @@ std::vector<Datagram> TamburEncoder::encode(std::vector<uint8_t> data,
                       uint16_t(j < (frame_size % rel_num_frames));
         const auto pkts = fECSender_->next_frame(sz, data_ptr,
                                                  frame_id_, (uint8_t)frame_type, (uint8_t)rel_num_frames);
+        
+        printf("\t\t\t === generate frame_id = %d \n", frame_id_);
+        
         data_ptr += sz;
         for (auto pkt : pkts)
         {

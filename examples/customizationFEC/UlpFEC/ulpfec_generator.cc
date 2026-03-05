@@ -16,6 +16,8 @@
 #include <memory>
 #include <utility>
 #include <cstdio>
+#include <chrono>
+#include <fstream>
 
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
 #include "modules/rtp_rtcp/source/byte_io.h"
@@ -23,6 +25,7 @@
 #include "examples/customizationFEC/UlpFEC/forward_error_correction_internal.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/synchronization/mutex.h"
+#include "examples/customizationFEC/Params.h"
 
 namespace webrtc {
 
@@ -157,9 +160,24 @@ void UlpfecGenerator::AddPacketAndGenerateFec(const RtpPacketToSend& packet) {
     // We are not using Unequal Protection feature of the parity erasure code.
     constexpr int kNumImportantPackets = 0;
     constexpr bool kUseUnequalProtection = false;
+
+    auto encode_fec_start = env_.clock().CurrentTime();
+
     fec_->EncodeFec(media_packets_, params.fec_rate, kNumImportantPackets,
                     kUseUnequalProtection, params.fec_mask_type,
                     &generated_fec_packets_);
+
+    auto encode_fec_end = env_.clock().CurrentTime();
+    int64_t encode_duration = (encode_fec_end - encode_fec_start).us();
+    uint32_t encode_size = media_packets_.size();
+  
+    //Write file!
+    auto now = std::chrono::system_clock::now();
+    auto milliseconds_since_epoch = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
+    std::ofstream encode_file(inputV::Params::output+"encode_duration.csv",std::ios::app);
+    encode_file<<milliseconds_since_epoch<<",,"<<encode_duration<<","<<encode_size<<std::endl;
+    encode_file.close();
+    
     if (generated_fec_packets_.empty()) {
       ResetState();
     }

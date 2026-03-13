@@ -76,9 +76,6 @@ std::string VideoFrame::get_frame()
 
 void VideoFrame::validate_datagram(const Datagram& datagram) const
 {
-    printf("\t\t\t datagram.frag_cnt: %d\n", datagram.frag_cnt);
-    printf("\t\t\t frags_.size(): %zu\n", frags_.size());
-    printf("\t\t\t datagram.frame_type: %d   type_: %d\n", datagram.frame_type, type_);
     assert(datagram.frame_id == id_ && "unable to insert an incompatible datagram");
     assert(datagram.frame_type == type_ && "unable to insert an incompatible datagram");
     assert(datagram.frag_id < frags_.size() && "unable to insert an incompatible datagram");
@@ -174,8 +171,6 @@ void VideoFrame::insert_frag(Datagram&& datagram, std::shared_ptr<const webrtc::
 void VideoFrame::add_fec_frame(uint16_t fec_frame_num, FrameType frameType,
                                uint8_t num_fec_frames, string& frame)
 {
-    printf("\t\t\t == add_fec_frame\n");
-    printf("\t\t\t == set type_ from %d to %d", type_, frameType);
     if (not fec_frames_.count(fec_frame_num))
     {
         fec_frames_[fec_frame_num] = std::move(frame);
@@ -206,6 +201,8 @@ bool TamburDecoder::add_datagram_common(const Datagram& datagram, std::shared_pt
     const auto frame_type = datagram.frame_type;
     const auto frag_cnt = datagram.frag_cnt;
 
+    // printf("\t\t\t === Current frame_id: %u, next_frame_: %u \n", frame_id, next_frame_);
+
     // Ignore any datagrams from old frames
     if (frame_id < next_frame_) {
         return false;
@@ -226,22 +223,19 @@ bool TamburDecoder::add_datagram(const Datagram& datagram, std::shared_ptr<const
     if (not packet) {
         return false;
     }
-    
+
     if (not add_datagram_common(datagram, packet)) {
         return false;
     }
     
     if (fec_multi_receiver_) {
-        printf("\t\t\t Run fec_multi_receiver_->receive_pkt(datagram.payload);\n");
         fec_multi_receiver_->receive_pkt(datagram.payload, retrans);
     }
     
     // Insert the datagram into the VideoFrame with packet information
-    printf("\t\t\t datagram.frame_id: %hu\n", datagram.frame_id);
     frame_buf_.at(datagram.frame_id).insert_frag(datagram, packet);
     
     // Verify FEC and check for complete frames
-    printf("\t\t\t Run update_fec_recovered_frames();\n");
     update_fec_recovered_frames();
     
     return true;
@@ -252,22 +246,19 @@ bool TamburDecoder::add_datagram(Datagram&& datagram, std::shared_ptr<const webr
     if (not packet) {
         return false;
     }
-    
+
     if (not add_datagram_common(datagram, packet)) {
         return false;
     }
     
     if (fec_multi_receiver_) {
-        printf("\t\t\t Run fec_multi_receiver_->receive_pkt(datagram.payload);\n");
         fec_multi_receiver_->receive_pkt(datagram.payload, retrans);
     }
     
     // Insert the datagram into the VideoFrame with packet information
-    printf("\t\t\t datagram.frame_id: %hu\n", datagram.frame_id);
     frame_buf_.at(datagram.frame_id).insert_frag(std::move(datagram), packet);
     
     // Verify FEC and check for complete frames
-    printf("\t\t\t Run update_fec_recovered_frames();\n");
     update_fec_recovered_frames();
     
     return true;
@@ -301,7 +292,11 @@ void TamburDecoder::update_fec_recovered_frames()
         VideoFrame& frame = frame_buf_.at(video_frame);
         if (not frame.has_fec_frame(fec_frame))
         {
-            printf("\t\t\t success recover fec_frame\n");
+            // Check if the FEC frame is still recoverable (not expired in StreamingCode)
+            auto is_recovered = fec_multi_receiver_->is_frame_recovered(fec_frame);
+            if (!is_recovered.has_value() || !is_recovered.value()) {
+                continue;
+            }
             std::string s = fec_multi_receiver_->recovered_frame(fec_frame);
             frame.add_fec_frame(fec_frame, FrameType{std::get<1>(video_frame_info)},
                                 std::get<2>(video_frame_info), s);
@@ -358,6 +353,34 @@ std::optional<TamburDecoder::TimestampedFrame> TamburDecoder::get_next_timestamp
 {
     if (not has_next_frame()) {
         return nullopt;
+    }
+
+    // If next_frame_ is not complete (lost and unrecoverable), skip forward
+    // to the nearest complete key frame.
+    {
+        auto it = frame_buf_.find(next_frame_);
+        if (it == frame_buf_.end() or not it->second.complete()) {
+            // Find the nearest complete key frame ahead of next_frame_
+            uint32_t skip_to = 0;
+            bool found = false;
+            for (auto rit = frame_buf_.begin(); rit != frame_buf_.end(); ++rit) {
+                if (rit->first > next_frame_ &&
+                    rit->second.type() == FrameType::KEY &&
+                    rit->second.complete()) {
+                    skip_to = rit->first;
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                return nullopt;
+            }
+            printf("\t\t\t skip lost frames: next_frame_=%u -> %u\n", next_frame_, skip_to);
+            // Advance next_frame_ to the key frame, discarding lost frames
+            while (next_frame_ < skip_to) {
+                advance_next_frame();
+            }
+        }
     }
 
     VideoFrame& frame = frame_buf_.at(next_frame_);

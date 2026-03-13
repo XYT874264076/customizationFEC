@@ -19,6 +19,11 @@ def run_WebRTC_peer(namespace, exec_file, connect_to, port, playVideo, duration,
     cmd = f"xvfb-run -a ip netns exec {namespace} bash -c 'export PULSE_SERVER=unix:/tmp/pulse-native; \
             {exec_file} --playVideo {playVideo} --duration {duration} --interval {interval} --output {output_dir} \
             --type {exp_type} --connect {connect_to} --port {port} --FECRate {fec_rate} --FECNum {fec_num} --ifTrainI true --ifSaveI true --ifTrainM true --ifSaveM true'";
+
+    # cmd = f"ip netns exec {namespace} bash -c 'export PULSE_SERVER=unix:/run/user/1000/pulse/native; export PULSE_COOKIE=/run/user/1000/pulse/cookie; \
+    #         {exec_file} --playVideo {playVideo} --duration {duration} --interval {interval} --output {output_dir} \
+    #         --type {exp_type} --connect {connect_to} --port {port} --FECRate {fec_rate} --FECNum {fec_num} --ifTrainI true --ifSaveI true --ifTrainM true --ifSaveM true'";
+
     print(cmd);
     result=subprocess.run(cmd, shell=True, capture_output=True, text=True);
     with open(output_std, "a") as f:

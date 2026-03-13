@@ -168,7 +168,7 @@ vector<FECDatagram> FrameGenerator::generate_frame_pkts(uint64_t frame_size, uin
   encode_file<<milliseconds_since_epoch<<","<<frame_num<<","<<encode_duration<<","<<encode_size<<std::endl;
   encode_file.close();
   
-  printf("\t\t\t generate_frame_pkts: data_pkts.size() = %lu, parity_pkts.size() = %lu\n", data_pkts.size(), parity_pkts.size());
+  // printf("\t\t\t generate_frame_pkts: data_pkts.size() = %lu, parity_pkts.size() = %lu\n", data_pkts.size(), parity_pkts.size());
 
   uint8_t data_index = 0;
   uint8_t parity_index = 0;

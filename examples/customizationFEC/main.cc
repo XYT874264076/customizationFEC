@@ -494,6 +494,17 @@ int init_output_file(){
       std::cerr << "Error opening file "<<path<<std::endl;
       return -1;
     }
+
+    path = inputV::Params::output+"TamburEncoder.csv";
+    std::ofstream file16(path);
+    if (file16.is_open()) {
+      file16<<"timestamp,frame_num,pkt_size\n";
+      file16.close();
+    }
+    else {
+      std::cerr << "Error opening file "<<path<<std::endl;
+      return -1;
+    }
   }
 
   // path = inputV::Params::output+"frame_receiver.csv";

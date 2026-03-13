@@ -23,7 +23,15 @@ std::vector<Datagram> TamburEncoder::encode(std::vector<uint8_t> data,
         const auto pkts = fECSender_->next_frame(sz, data_ptr,
                                                  frame_id_, (uint8_t)frame_type, (uint8_t)rel_num_frames);
         
-        printf("\t\t\t === generate frame_id = %d \n", frame_id_);
+        //Write file!!
+        if (pkts.size() > 0){
+            uint32_t frame_num = pkts.at(0).frame_num;
+            auto nowtime = std::chrono::system_clock::now();
+            auto milliseconds_since_epoch = std::chrono::duration_cast<std::chrono::microseconds>(nowtime.time_since_epoch()).count();
+            std::fstream TamburEncoder(inputV::Params::output+"TamburEncoder.csv",std::ios::app);
+            TamburEncoder << milliseconds_since_epoch << "," << frame_num << "," << pkts.size() << std::endl;
+            TamburEncoder.close();
+        }
         
         data_ptr += sz;
         for (auto pkt : pkts)

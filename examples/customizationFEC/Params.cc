@@ -84,7 +84,7 @@ namespace transV {
     // note if the python interpreter has been init!
     int Params::py_init = 0;
 
-    uint8_t Params::tambur_qr_state = 0;
+    uint8_t Params::tambur_qr_state = 1;
 
     double list_avg(const std::list<double>& cur_list) {
         double ret = 0;

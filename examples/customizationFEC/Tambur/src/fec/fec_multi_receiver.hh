@@ -99,6 +99,7 @@ private:
   bool received_first_frame_{false};
   uint16_t last_received_frame_{0};
   bool video_frame_info_padded_;
+  uint16_t max_frame_num_{0};
 
   ParityEfrStats parity_efr_stats_{};
 };

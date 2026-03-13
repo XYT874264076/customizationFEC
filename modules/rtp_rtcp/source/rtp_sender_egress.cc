@@ -158,8 +158,6 @@ void RtpSenderEgress::SendPacket(std::unique_ptr<RtpPacketToSend> packet,
                                  const PacedPacketInfo& pacing_info) {
   RTC_DCHECK_RUN_ON(worker_queue_);
 
-  // printf("\t\t\t Run RtpSenderEgress::SendPacket\n");
-
   RTC_DCHECK(packet);
 
   if (packet->Ssrc() == ssrc_ &&
@@ -194,8 +192,6 @@ void RtpSenderEgress::SendPacket(std::unique_ptr<RtpPacketToSend> packet,
             timestamp, packet->is_first_packet_of_frame(), packet->Marker()));
   }
 
-  // printf("\t\t\t packet->fec_protect_packet(): %d\n", packet->fec_protect_packet());
-
   if (fec_generator_ && packet->fec_protect_packet()) {
     // This packet should be protected by FEC, add it to packet generator.
     RTC_DCHECK(fec_generator_);
@@ -207,7 +203,6 @@ void RtpSenderEgress::SendPacket(std::unique_ptr<RtpPacketToSend> packet,
       fec_generator_->SetProtectionParameters(new_fec_params->first,
                                               new_fec_params->second);
     }
-    // printf("\t\t\t packet->is_red(): %d", packet->is_red());
     if (packet->is_red()) {
       RtpPacketToSend unpacked_packet(*packet);
 
@@ -478,8 +473,6 @@ bool RtpSenderEgress::SendPacketToNetwork(const RtpPacketToSend& packet,
                                           const PacketOptions& options,
                                           const PacedPacketInfo& pacing_info) {
   RTC_DCHECK_RUN_ON(worker_queue_);
-
-  // printf("\t\t\t Run RtpSenderEgress::SendPacketToNetwork\n");
 
   if (transport_ == nullptr || !transport_->SendRtp(packet, options)) {
     RTC_LOG(LS_WARNING) << "Transport failed to send packet.";

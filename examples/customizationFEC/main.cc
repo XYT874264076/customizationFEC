@@ -437,7 +437,7 @@ int init_output_file(){
     return -1;
   }
 
-  if (inputV::Params::type==inputV::ExpType::RLSRSFEC){
+  if (inputV::Params::type==inputV::ExpType::RLSRSFEC || inputV::Params::type==inputV::ExpType::SwiftFECAblL || inputV::Params::type==inputV::ExpType::SwiftFECAblI || inputV::Params::type==inputV::ExpType::SwiftFECAblM){
     path = inputV::Params::output+"LModule.csv";
     std::ofstream file8(path);
     if (file8.is_open()) {

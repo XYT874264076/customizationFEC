@@ -231,7 +231,7 @@ std::unique_ptr<VideoFecGenerator> MaybeCreateFecGenerator(
       return std::make_unique<RSfecGenerator>(env, rtp.ulpfec.red_payload_type, rtp.ulpfec.ulpfec_payload_type);
     }
     else if (inputV::Params::type == inputV::ExpType::RSFECStreamStableRate || inputV::Params::type == inputV::ExpType::RSFECStreamSourceRate || 
-             inputV::Params::type == inputV::ExpType::RLSRSFEC) {
+             inputV::Params::type == inputV::ExpType::RLSRSFEC || inputV::Params::type == inputV::ExpType::SwiftFECAblL || inputV::Params::type == inputV::ExpType::SwiftFECAblM || inputV::Params::type == inputV::ExpType::SwiftFECAblI) {
       return std::make_unique<StreamRSfecGenerator>(env, rtp.ulpfec.red_payload_type, rtp.ulpfec.ulpfec_payload_type);
     }
     else if (inputV::Params::type == inputV::ExpType::FECClose) {

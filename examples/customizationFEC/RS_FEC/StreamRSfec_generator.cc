@@ -114,7 +114,7 @@ void StreamRSfecGenerator::AddPacketAndGenerateFec(const RtpPacketToSend& packet
   RTC_DCHECK_RUNS_SERIALIZED(&race_checker_);
   RTC_DCHECK(generated_fec_packets_.empty());
 
-  if (inputV::Params::type == inputV::ExpType::RSFECStreamStableRate) {
+  if (inputV::Params::type == inputV::ExpType::RSFECStreamStableRate || inputV::Params::type == inputV::ExpType::SwiftFECAblI) {
 
     while (media_packets_.size() > 0 && media_packets_.size() >= transV::Params::L) {
       media_packets_.pop_front();
@@ -242,7 +242,7 @@ void StreamRSfecGenerator::AddPacketAndGenerateFec(const RtpPacketToSend& packet
 
 
   }
-  else if (inputV::Params::type == inputV::ExpType::RLSRSFEC) {
+  else if (inputV::Params::type == inputV::ExpType::RLSRSFEC || inputV::Params::type == inputV::ExpType::SwiftFECAblL || inputV::Params::type == inputV::ExpType::SwiftFECAblM) {
     // std::cout << "Now we run RLSRSFEC!" << std::endl;
 
     // const bool complete_frame = packet.Marker();

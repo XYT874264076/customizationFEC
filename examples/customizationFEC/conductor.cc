@@ -448,11 +448,17 @@ class FECStatsObserver : virtual public webrtc::RTCStatsCollectorCallback {
 
       auto L_module_start = std::chrono::steady_clock::now();
 
-      if (transV::Params::do_RL_times>=5 && transV::checkLState(L_params)) {
-          transV::Params::L = getL(L_params);
+      if (inputV::Params::type == inputV::ExpType::RLSRSFEC || inputV::Params::type == inputV::ExpType::SwiftFECAblI || inputV::Params::type == inputV::ExpType::SwiftFECAblM ||
+          inputV::Params::type == inputV::ExpType::RSFECStreamStableRate){
+          if (transV::Params::do_RL_times>=5 && transV::checkLState(L_params)) {
+              transV::Params::L = getL(L_params);
+          }
+          else {
+              transV::Params::L = 32;
+          }
       }
-      else {
-          transV::Params::L = 32;
+      else if (inputV::Params::type == inputV::ExpType::SwiftFECAblL) {
+          transV::Params::L = inputV::Params::default_L;
       }
 
       auto L_module_end = std::chrono::steady_clock::now();
@@ -460,7 +466,7 @@ class FECStatsObserver : virtual public webrtc::RTCStatsCollectorCallback {
      
       double cur_IReward = 0;
       double cur_baseline_Ireward = 0;
-      if (inputV::Params::type == inputV::ExpType::RLSRSFEC) {
+      if (inputV::Params::type == inputV::ExpType::RLSRSFEC || inputV::Params::type == inputV::ExpType::SwiftFECAblL || inputV::Params::type == inputV::ExpType::SwiftFECAblM) {
         if (transV::Params::do_RL_times>=5 && transV::checkIReward(I_rewards) && transV::checkIState(I_states)) {
             std::vector<double> cur_state = transV::IState_to_vector(I_states);
             
@@ -527,7 +533,7 @@ class FECStatsObserver : virtual public webrtc::RTCStatsCollectorCallback {
       double cur_MReward = 0;
       double cur_baseline_Mreward = 0;
 
-      if (inputV::Params::type == inputV::ExpType::RLSRSFEC) {
+      if (inputV::Params::type == inputV::ExpType::RLSRSFEC || inputV::Params::type == inputV::ExpType::SwiftFECAblI || inputV::Params::type == inputV::ExpType::SwiftFECAblL) {
         if (transV::Params::do_RL_times>=5 && transV::checkMReward(M_rewards) && transV::checkMState(M_states)) {
             std::vector<double> cur_state = transV::MState_to_vector(M_states);
             double cur_reward = transV::calculate_Mreward(M_rewards, 0.5 ,0.3, 0.1, 0.1);
@@ -1106,7 +1112,8 @@ void Conductor::OnMessageFromPeer(const std::string& message) {
       return;
     } else {
       startGetState();
-      if (inputV::Params::type == inputV::ExpType::RLSRSFEC || inputV::Params::type == inputV::ExpType::RSFECStreamStableRate) {
+      if (inputV::Params::type == inputV::ExpType::RLSRSFEC || inputV::Params::type == inputV::ExpType::RSFECStreamStableRate || inputV::Params::type == inputV::ExpType::SwiftFECAblI
+          || inputV::Params::type == inputV::ExpType::SwiftFECAblM || inputV::Params::type == inputV::ExpType::SwiftFECAblL) {
         startRLState();
       }
       // if (inputV::Params::type == inputV::ExpType::TamburFEC) {
@@ -1210,7 +1217,8 @@ void Conductor::ConnectToPeer() {
   if (InitializePeerConnection()) {
     state_ = CONNECTTOPEER;
     startGetState();
-    if (inputV::Params::type == inputV::ExpType::RLSRSFEC || inputV::Params::type == inputV::ExpType::RSFECStreamStableRate) {
+    if (inputV::Params::type == inputV::ExpType::RLSRSFEC || inputV::Params::type == inputV::ExpType::RSFECStreamStableRate|| inputV::Params::type == inputV::ExpType::SwiftFECAblI
+          || inputV::Params::type == inputV::ExpType::SwiftFECAblM || inputV::Params::type == inputV::ExpType::SwiftFECAblL) {
       startRLState();
     }
     // if (inputV::Params::type == inputV::ExpType::TamburFEC) {

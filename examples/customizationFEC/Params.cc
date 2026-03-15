@@ -14,6 +14,7 @@ namespace inputV {
     bool Params::ifSaveI;
     bool Params::ifTrainM;
     bool Params::ifSaveM;
+    int32_t Params::default_L;
 
     // Tambur parameters
     uint16_t Params::tambur_tau;

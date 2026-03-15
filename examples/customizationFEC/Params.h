@@ -24,7 +24,10 @@ enum ExpType{
   RSFECStreamSourceRate,
   RLSRSFEC,
   FECClose,
-  TamburFEC
+  TamburFEC,
+  SwiftFECAblL,
+  SwiftFECAblM,
+  SwiftFECAblI
 };
 
 class Params{
@@ -105,6 +108,15 @@ public:
         else if (value=="TamburFEC"){
             type = ExpType::TamburFEC;
         }
+        else if (value=="SwiftFECAblL"){
+            type = ExpType::SwiftFECAblL;
+        }
+        else if (value=="SwiftFECAblM"){
+            type = ExpType::SwiftFECAblM;
+        }
+        else if (value=="SwiftFECAblI"){
+            type = ExpType::SwiftFECAblI;
+        }
         else {
             std::cerr<<"Warning: Unknown ExpType "<< value <<"! Still use WebRTCSource as default!" << std::endl;
         }
@@ -173,6 +185,10 @@ public:
         param_value_int = std::stoi(value);
         tambur_num_qrs_no_reduce = param_value_int;
     }
+    if (name=="default_L"){
+        param_value_int = std::stoi(value);
+        default_L = param_value_int;
+    }
 
     return 0;
  }
@@ -190,6 +206,7 @@ public:
     ifSaveI = false;
     ifTrainM = false;
     ifSaveM = false;
+    default_L = 32;
 
     // Tambur params
     tambur_tau = 3; // default FEC protection window size 
@@ -230,6 +247,7 @@ public:
  static bool ifSaveI;
  static bool ifTrainM;
  static bool ifSaveM;
+ static int32_t default_L;
 
  // Tambur params
  static uint16_t tambur_tau;

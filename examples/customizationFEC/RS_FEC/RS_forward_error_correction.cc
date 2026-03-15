@@ -162,10 +162,10 @@ int RSForwardErrorCorrection::EncodeRSFec(const PacketList& media_packets,uint8_
 
     // Prepare generated FEC packets.
     int num_fec_packets = 0;
-    if (inputV::Params::type == inputV::ExpType::RSFECStreamStableRate) {
+    if (inputV::Params::type == inputV::ExpType::RSFECStreamStableRate || inputV::Params::type == inputV::ExpType::SwiftFECAblM) {
       num_fec_packets = inputV::Params::generate_fec_num;
     }
-    else if (inputV::Params::type == inputV::ExpType::RLSRSFEC) {
+    else if (inputV::Params::type == inputV::ExpType::RLSRSFEC || inputV::Params::type == inputV::ExpType::SwiftFECAblL || inputV::Params::type == inputV::ExpType::SwiftFECAblI) {
       num_fec_packets = transV::Params::M;
     }
     else if (inputV::Params::type == inputV::ExpType::RSFECBlock) {

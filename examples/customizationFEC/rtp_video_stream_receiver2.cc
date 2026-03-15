@@ -166,7 +166,9 @@ std::unique_ptr<fecReceiver> MaybeConstructfecReceiver(
     return std::make_unique<UlpfecReceiver>(remote_ssrc, fec_payload_type, callback, clock);
   }
   else if (inputV::Params::type == inputV::ExpType::RSFECBlock || inputV::Params::type == inputV::ExpType::RSFECStreamStableRate || 
-            inputV::Params::type == inputV::ExpType::RSFECStreamSourceRate || inputV::Params::type == inputV::ExpType::RLSRSFEC){
+            inputV::Params::type == inputV::ExpType::RSFECStreamSourceRate || inputV::Params::type == inputV::ExpType::RLSRSFEC || 
+            inputV::Params::type == inputV::ExpType::SwiftFECAblL || inputV::Params::type == inputV::ExpType::SwiftFECAblM || 
+            inputV::Params::type == inputV::ExpType::SwiftFECAblI){
     return std::make_unique<RSfecReceiver>(remote_ssrc, fec_payload_type, callback, clock);
   }
   else if (inputV::Params::type == inputV::ExpType::TamburFEC){

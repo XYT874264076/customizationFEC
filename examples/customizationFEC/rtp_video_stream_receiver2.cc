@@ -1148,6 +1148,16 @@ void RtpVideoStreamReceiver2::RequestKeyFrame() {
 void RtpVideoStreamReceiver2::SendNack(
     const std::vector<uint16_t>& sequence_numbers,
     bool /*buffering_allowed*/) {
+
+  //Write file!
+  auto now = std::chrono::system_clock::now();
+  auto milliseconds_since_epoch = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
+  std::ofstream pkt_lost(inputV::Params::output+"pkt_lost.csv",std::ios::app);
+  for (const auto& seq_num : sequence_numbers) {
+    pkt_lost<<milliseconds_since_epoch<<","<<seq_num<<std::endl;
+  }
+  pkt_lost.close();
+    
   rtp_rtcp_->SendNack(sequence_numbers);
 }
 

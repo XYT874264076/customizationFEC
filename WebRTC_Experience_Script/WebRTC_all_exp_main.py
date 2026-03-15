@@ -190,12 +190,12 @@ def main():
     parser.add_argument('-net', '--network-type', type=str, required=False, default='TestLossP4_1M_50MS,TestLossP4_1M_50MS;TestLossP6_1M_50MS,TestLossP6_1M_50MS;TestLossP8_1M_50MS,TestLossP8_1M_50MS;TestLossP10_1M_50MS,TestLossP10_1M_50MS', help='Type of the network environments for two peers. For each peers, split with ,. For each experience, split with ;');
     # parser.add_argument('-net', '--network-type', type=str, required=False, default='driving,driving;high_speed,high_speed', help='Type of the network environments for two peers. For each peers, split with ,. For each experience, split with ;');
     # parser.add_argument('-ts', '--exp-types', type=str, required=False, default='WebRTCSource;RSFECBlock;RSFECStreamStableRate;FECClose', help='Type of the experience types, split with ;');
-    parser.add_argument('-ts', '--exp-types', type=str, required=False, default='TamburFEC', help='Type of the experience types, split with ;');
+    parser.add_argument('-ts', '--exp-types', type=str, required=False, default='SwiftFECAblM', help='Type of the experience types, split with ;');
     # parser.add_argument('-ts', '--exp-types', type=str, required=False, default='WebRTCSource;RSFECBlock;RSFECStreamStableRate', help='Type of the experience types, split with ;');
     parser.add_argument('-f', '--traceFile', type=str, required=False, default='trace.csv,trace.csv;trace.csv,trace.csv;trace.csv,trace.csv;trace.csv,trace.csv;trace.csv,trace.csv;trace.csv,trace.csv', help='Trace file for network simulation for each peers. For each peers, split with ,. For each experience, split with ;');
     # parser.add_argument('-f', '--traceFile', type=str, required=False, default='trace.csv,trace.csv', help='Trace file for network simulation for each peers. For each peers, split with ,. For each experience, split with ;');
 
-    parser.add_argument('-n', '--epoch', type=int, required=False, default=20, help='Number of experiment groups(1<=epoch<=10)');
+    parser.add_argument('-n', '--epoch', type=int, required=False, default=1, help='Number of experiment groups(1<=epoch<=10)');
     parser.add_argument('-exe', '--executable-file', type=str, required=False, default='../out/customizationFEC/customizationFEC' ,help='executable files path, that is MyFECExp file path!');
     parser.add_argument('-ns', '--namespace', type=str, required=False, default='client1,client2', help='The namespace for each peers, split with ,');
     # parser.add_argument('-fr', '--fec-rate', type=str, required=False, default='0.1,0.12,0.14,0.16,0.18,0.2,0.22,0.24', help='The FECRate, split with ,');

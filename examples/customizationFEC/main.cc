@@ -437,6 +437,17 @@ int init_output_file(){
     return -1;
   }
 
+  path = inputV::Params::output+"pkt_lost.csv";
+  std::ofstream file17(path);
+  if (file17.is_open()){
+    file17<<"timestamp,sequence_num\n";
+    file17.close();
+  }
+  else {
+    std::cerr << "Error opening file "<<path<<std::endl;
+    return -1;
+  }
+
   if (inputV::Params::type==inputV::ExpType::RLSRSFEC || inputV::Params::type==inputV::ExpType::SwiftFECAblL || inputV::Params::type==inputV::ExpType::SwiftFECAblI || inputV::Params::type==inputV::ExpType::SwiftFECAblM){
     path = inputV::Params::output+"LModule.csv";
     std::ofstream file8(path);

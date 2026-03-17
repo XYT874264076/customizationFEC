@@ -981,6 +981,7 @@ int RtpVideoSender::ProtectionRequest(const FecProtectionParams* delta_params,
   std::ofstream rtpSenderFile(inputV::Params::output+"rtp_video_sender.csv",std::ios::app);
   rtpSenderFile<<milliseconds_since_epoch<<","<<*sent_video_rate_bps<<","
     <<*sent_nack_rate_bps<<","<<*sent_fec_rate_bps<<"\n";
+  rtpSenderFile.close();
 
   return 0;
 }

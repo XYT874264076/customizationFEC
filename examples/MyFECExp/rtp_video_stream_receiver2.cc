@@ -744,8 +744,7 @@ void RtpVideoStreamReceiver2::OnRecoveredPacket(
     auto nowtime = std::chrono::system_clock::now();
     auto milliseconds_since_epoch = std::chrono::duration_cast<std::chrono::microseconds>(nowtime.time_since_epoch()).count();
     std::fstream rtp_video_recv_file(inputV::Params::output+"rtp_video_stream_receiver2.csv",std::ios::app);
-    rtp_video_recv_file<<milliseconds_since_epoch<<","<<packet.SequenceNumber()<<","<<packet.payload_size()<<",";
-    rtp_video_recv_file<<"RecoverVideoPacket"<<"\n";
+    rtp_video_recv_file<<milliseconds_since_epoch<<","<<packet.SequenceNumber()<<","<<packet.payload_size()<<","<<"RecoverVideoPacket"<<"\n";
     rtp_video_recv_file.close();
   }
 
@@ -780,24 +779,21 @@ void RtpVideoStreamReceiver2::OnRtpPacket(const RtpPacketReceived& packet) {
     auto nowtime = std::chrono::system_clock::now();
     auto milliseconds_since_epoch = std::chrono::duration_cast<std::chrono::microseconds>(nowtime.time_since_epoch()).count();
     std::fstream rtp_video_recv_file(inputV::Params::output+"rtp_video_stream_receiver2.csv",std::ios::app);
-    rtp_video_recv_file<<milliseconds_since_epoch<<","<<packet.SequenceNumber()<<","<<packet.payload_size()<<",";
-    rtp_video_recv_file<<"FECPacket"<<"\n";
+    rtp_video_recv_file<<milliseconds_since_epoch<<","<<packet.SequenceNumber()<<","<<packet.payload_size()<<","<<"FECPacket"<<"\n";
     rtp_video_recv_file.close();
   }
   else if (packet.recovered()){
     auto nowtime = std::chrono::system_clock::now();
     auto milliseconds_since_epoch = std::chrono::duration_cast<std::chrono::microseconds>(nowtime.time_since_epoch()).count();
     std::fstream rtp_video_recv_file(inputV::Params::output+"rtp_video_stream_receiver2.csv",std::ios::app);
-    rtp_video_recv_file<<milliseconds_since_epoch<<","<<packet.SequenceNumber()<<","<<packet.payload_size()<<",";
-    rtp_video_recv_file<<"RetransmissionPacket"<<"\n";
+    rtp_video_recv_file<<milliseconds_since_epoch<<","<<packet.SequenceNumber()<<","<<packet.payload_size()<<","<<"RetransmissionPacket"<<"\n";
     rtp_video_recv_file.close();
   }
   else {
     auto nowtime = std::chrono::system_clock::now();
     auto milliseconds_since_epoch = std::chrono::duration_cast<std::chrono::microseconds>(nowtime.time_since_epoch()).count();
     std::fstream rtp_video_recv_file(inputV::Params::output+"rtp_video_stream_receiver2.csv",std::ios::app);
-    rtp_video_recv_file<<milliseconds_since_epoch<<","<<packet.SequenceNumber()<<","<<packet.payload_size()<<",";
-    rtp_video_recv_file<<"VideoPacket"<<"\n";
+    rtp_video_recv_file<<milliseconds_since_epoch<<","<<packet.SequenceNumber()<<","<<packet.payload_size()<<","<<"VideoPacket"<<"\n";
     rtp_video_recv_file.close();
   }
 

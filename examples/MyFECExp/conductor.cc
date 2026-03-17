@@ -214,6 +214,10 @@ class RTCStatsObserver : virtual public webrtc::RTCStatsCollectorCallback {
  
      inboundFile.close();
      outboundFile.close();
+     candidateFile.close();
+     remoteinbound.close();
+     remoteoutbound.close();
+     remotefecFile.close();
    }
  };
 
@@ -567,6 +571,7 @@ class FECStatsObserver : virtual public webrtc::RTCStatsCollectorCallback {
                     << L_params.s_pck << ","
                     << L_params.fps << ","
                     << transV::Params::L << "\n";
+        LModuleFile.close();
      }
     
      // write IModule.csv
@@ -589,6 +594,7 @@ class FECStatsObserver : virtual public webrtc::RTCStatsCollectorCallback {
                     << cur_IReward << ","
                     << cur_baseline_Ireward << ","
                     << transV::Params::I << "\n";
+        IModuleFile.close();
      }
 
      // write MModule.csv
@@ -611,6 +617,7 @@ class FECStatsObserver : virtual public webrtc::RTCStatsCollectorCallback {
                     << cur_MReward << ","
                     << cur_baseline_Mreward << ","
                     << transV::Params::M << "\n";
+        MModuleFile.close();
      }
    }
 };

@@ -228,24 +228,27 @@ void RtpSenderEgress::SendPacket(std::unique_ptr<RtpPacketToSend> packet,
   auto nowtime = std::chrono::system_clock::now();
   auto milliseconds_since_epoch = std::chrono::duration_cast<std::chrono::microseconds>(nowtime.time_since_epoch()).count();
   std::fstream rtp_sender_egress(inputV::Params::output+"rtp_sender_egress.csv",std::ios::app);
-  rtp_sender_egress<<milliseconds_since_epoch<<","<<packet->SequenceNumber()<<","<<packet->payload_size()
-    <<","<<packet->is_key_frame()<<",";
   if (packet->packet_type()==RtpPacketToSend::Type::kVideo){
-    rtp_sender_egress<<"VideoPacket"<<"\n";
+    rtp_sender_egress<<milliseconds_since_epoch<<","<<packet->SequenceNumber()<<","<<packet->payload_size()
+        <<","<<packet->is_key_frame()<<","<<"VideoPacket"<<"\n";
   }
   else if (packet->packet_type()==RtpPacketToSend::Type::kRetransmission){
     if (packet->retransmitted_sequence_number()){
-      rtp_sender_egress<<"Retransmission:"<<*packet->retransmitted_sequence_number()<<"\n";
+      rtp_sender_egress<<milliseconds_since_epoch<<","<<packet->SequenceNumber()<<","<<packet->payload_size()
+          <<","<<packet->is_key_frame()<<","<<"Retransmission:"<<*packet->retransmitted_sequence_number()<<"\n";
     }
     else {
-      rtp_sender_egress<<"Retransmission:"<<"nullptr"<<"\n";
+      rtp_sender_egress<<milliseconds_since_epoch<<","<<packet->SequenceNumber()<<","<<packet->payload_size()
+          <<","<<packet->is_key_frame()<<","<<"Retransmission:"<<"nullptr"<<"\n";
     }
   }
   else if (packet->packet_type()==RtpPacketToSend::Type::kForwardErrorCorrection){
-    rtp_sender_egress<<"FECPacket"<<"\n";
+    rtp_sender_egress<<milliseconds_since_epoch<<","<<packet->SequenceNumber()<<","<<packet->payload_size()
+        <<","<<packet->is_key_frame()<<","<<"FECPacket"<<"\n";
   }
   else if (packet->packet_type()==RtpPacketToSend::Type::kPadding){
-    rtp_sender_egress<<"Padding"<<"\n";
+    rtp_sender_egress<<milliseconds_since_epoch<<","<<packet->SequenceNumber()<<","<<packet->payload_size()
+        <<","<<packet->is_key_frame()<<","<<"Padding"<<"\n";
   }
   rtp_sender_egress.close();
 

@@ -190,6 +190,52 @@ public:
         default_L = param_value_int;
     }
 
+    // Assign double value:
+    if (name=="I_alpha"){
+        param_value_double = std::stod(value);
+        I_alpha = param_value_double;
+    }
+    if (name=="I_beta"){
+        param_value_double = std::stod(value);
+        I_beta = param_value_double;
+    }
+    if (name=="I_gamma"){
+        param_value_double = std::stod(value);
+        I_gamma = param_value_double;
+    }
+    if (name=="I_lambda1"){
+        param_value_double = std::stod(value);
+        I_lambda1 = param_value_double;
+    }
+    if (name=="I_lambda2"){
+        param_value_double = std::stod(value);
+        I_lambda2 = param_value_double;
+    }
+    if (name=="I_lambda3"){
+        param_value_double = std::stod(value);
+        I_lambda3 = param_value_double;
+    }
+    if (name=="I_lambda4"){
+        param_value_double = std::stod(value);
+        I_lambda4 = param_value_double;
+    }
+    if (name=="M_lambda1"){
+        param_value_double = std::stod(value);
+        M_lambda1 = param_value_double;
+    }
+    if (name=="M_lambda2"){
+        param_value_double = std::stod(value);
+        M_lambda2 = param_value_double;
+    }
+    if (name=="M_lambda3"){
+        param_value_double = std::stod(value);
+        M_lambda3 = param_value_double;
+    }
+    if (name=="M_lambda4"){
+        param_value_double = std::stod(value);
+        M_lambda4 = param_value_double;
+    }
+
     return 0;
  }
 
@@ -207,6 +253,19 @@ public:
     ifTrainM = false;
     ifSaveM = false;
     default_L = 32;
+
+    I_alpha = 1;
+    I_beta = 1;
+    I_gamma = 0.8;
+    I_lambda1 = 0.7;
+    I_lambda2 = 0.1;
+    I_lambda3 = 0.1;
+    I_lambda4 = 0.1;
+
+    M_lambda1 = 0.5;
+    M_lambda2 = 0.3;
+    M_lambda3 = 0.1;
+    M_lambda4 = 0.1;
 
     // Tambur params
     tambur_tau = 3; // default FEC protection window size 
@@ -249,6 +308,19 @@ public:
  static bool ifSaveM;
  static int32_t default_L;
 
+ static double I_alpha;
+ static double I_beta;
+ static double I_gamma;
+ static double I_lambda1;
+ static double I_lambda2;
+ static double I_lambda3;
+ static double I_lambda4;
+
+ static double M_lambda1;
+ static double M_lambda2;
+ static double M_lambda3;
+ static double M_lambda4;
+
  // Tambur params
  static uint16_t tambur_tau;
  static int tambur_stripe_size;
@@ -269,6 +341,9 @@ public:
  static uint32_t L;
  static uint32_t I;
  static uint32_t M;
+
+ static uint32_t I_train_steps;
+ static uint32_t M_train_steps;
 
  // Used to calculate current s_pck
  static int32_t last_packets_sent;

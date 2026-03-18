@@ -26,12 +26,12 @@ def run_without_error(cmd):
         pass;
 
 def run_WebRTC_single_exp_main(connect_to, port, playVideo, duration, interval, bridge_interface, network_type,
-                               exp_type, base_dir, trace_file, epoch, exe_file, namespace, fec_rate=0.18, fec_num=2):
+                               exp_type, base_dir, trace_file, epoch, exe_file, namespace, fec_rate, fec_num, ifTrainI, ifSaveI, ifTrainM, ifSaveM, ifHyper, Hyper_name, Hyper_value):
     cmd = (f"python3 WebRTC_single_exp_main.py -conn {connect_to} -p {port} "
            f"-v {playVideo} -d {duration} -i {interval} "
            f"-bri {bridge_interface} -net {network_type} -t {exp_type} "
            f"-dir {base_dir} -f {trace_file} -n {epoch} "
-           f"-exe {exe_file} -ns {namespace} -fr {fec_rate} -fn {fec_num}");
+           f"-exe {exe_file} -ns {namespace} -fr {fec_rate} -fn {fec_num} -iIt {ifTrainI} -iSt {ifSaveI} -mIt {ifTrainM} -mSt {ifSaveM} -hy {ifHyper} -ad {Hyper_name} -adv {Hyper_value}");
     print(cmd);
     print();
     process=subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True);
@@ -178,7 +178,7 @@ def main():
     parser.add_argument('-p', '--port', type=str, required=False, default=3000, help='Signal server port');
     parser.add_argument('-vs', '--playVideos', type=str, required=False, default='/home/ubuntu/Desktop/MyFECExp/testVideo/testVideo1.mp4,/home/ubuntu/Desktop/MyFECExp/testVideo/testVideo2.mp4', help='Video contents transmitted by two peers! For two peers, split with ,. For each experience, split with ;')
     # parser.add_argument('-d', '--duration', type=int, required=False, default=400, help='Duration of the network simulation');
-    parser.add_argument('-d', '--duration', type=int, required=False, default=120, help='Duration of the network simulation');
+    parser.add_argument('-d', '--duration', type=int, required=False, default=620, help='Duration of the network simulation');
     parser.add_argument('-i', '--interval', type=int, required=False, default=500, help='The interval between each json data collection');
     parser.add_argument('-nsi', '--namespace-interface', type=str, required=False, default='veth1,veth2');
     parser.add_argument('-bri', '--bridge-interface', type=str, required=False, default="br-veth1,br-veth2");
@@ -187,15 +187,15 @@ def main():
     # parser.add_argument('-net', '--network-type', type=str, required=False, default='TestLossP2_1M_50MS,TestLossP2_1M_50MS;TestLossP4_1M_50MS,TestLossP4_1M_50MS;TestLossP6_1M_50MS,TestLossP6_1M_50MS;TestLossP8_1M_50MS,TestLossP8_1M_50MS;TestLossP10_1M_50MS,TestLossP10_1M_50MS', help='Type of the network environments for two peers. For each peers, split with ,. For each experience, split with ;');
     # parser.add_argument('-net', '--network-type', type=str, required=False, default='TestLossP10_1M_50MS,TestLossP10_1M_50MS;UnStableBTW,UnStableBTW', help='Type of the network environments for two peers. For each peers, split with ,. For each experience, split with ;');
     # parser.add_argument('-net', '--network-type', type=str, required=False, default='dense_indoor,dense_indoor;walking,walking;driving,driving;high_speed,high_speed;LTE_2025,LTE_2025;NR_2025,NR_2025', help='Type of the network environments for two peers. For each peers, split with ,. For each experience, split with ;');
-    parser.add_argument('-net', '--network-type', type=str, required=False, default='TestLossP8_1M_50MS,TestLossP8_1M_50MS;TestLossP10_1M_50MS,TestLossP10_1M_50MS', help='Type of the network environments for two peers. For each peers, split with ,. For each experience, split with ;');
+    parser.add_argument('-net', '--network-type', type=str, required=False, default='UnStable1M,UnStable1M', help='Type of the network environments for two peers. For each peers, split with ,. For each experience, split with ;');
     # parser.add_argument('-net', '--network-type', type=str, required=False, default='driving,driving;high_speed,high_speed', help='Type of the network environments for two peers. For each peers, split with ,. For each experience, split with ;');
     # parser.add_argument('-ts', '--exp-types', type=str, required=False, default='WebRTCSource;RSFECBlock;RSFECStreamStableRate;FECClose', help='Type of the experience types, split with ;');
-    parser.add_argument('-ts', '--exp-types', type=str, required=False, default='TamburFEC', help='Type of the experience types, split with ;');
+    parser.add_argument('-ts', '--exp-types', type=str, required=False, default='RLSRSFEC', help='Type of the experience types, split with ;');
     # parser.add_argument('-ts', '--exp-types', type=str, required=False, default='WebRTCSource;RSFECBlock;RSFECStreamStableRate', help='Type of the experience types, split with ;');
     parser.add_argument('-f', '--traceFile', type=str, required=False, default='trace.csv,trace.csv;trace.csv,trace.csv;trace.csv,trace.csv;trace.csv,trace.csv;trace.csv,trace.csv;trace.csv,trace.csv', help='Trace file for network simulation for each peers. For each peers, split with ,. For each experience, split with ;');
     # parser.add_argument('-f', '--traceFile', type=str, required=False, default='trace.csv,trace.csv', help='Trace file for network simulation for each peers. For each peers, split with ,. For each experience, split with ;');
 
-    parser.add_argument('-n', '--epoch', type=int, required=False, default=20, help='Number of experiment groups(1<=epoch<=10)');
+    parser.add_argument('-n', '--epoch', type=int, required=False, default=1, help='Number of experiment groups(1<=epoch<=10)');
     parser.add_argument('-exe', '--executable-file', type=str, required=False, default='../out/customizationFEC/customizationFEC' ,help='executable files path, that is MyFECExp file path!');
     parser.add_argument('-ns', '--namespace', type=str, required=False, default='client1,client2', help='The namespace for each peers, split with ,');
     # parser.add_argument('-fr', '--fec-rate', type=str, required=False, default='0.1,0.12,0.14,0.16,0.18,0.2,0.22,0.24', help='The FECRate, split with ,');
@@ -203,6 +203,21 @@ def main():
     parser.add_argument('-fr', '--fec-rate', type=str, required=False, default='0.18', help='The FECRate, split with ,');
     # parser.add_argument('-fn', '--fec-num', type=str, required=False, default='1,2,3', help='The FECNum, split with ,');
     parser.add_argument('-fn', '--fec-num', type=str, required=False, default='1', help='The FECNum, split with ,');
+
+    parser.add_argument('-hy', '--hyper', type=bool, required=False, default=False, help='if do the hyper paramter experiment');
+    parser.add_argument('-Ialpha', '--Ialpha', type=str, required=False, default="", help='adjust the Ialpha');
+    parser.add_argument('-Ibeta', '--Ibeta', type=str, required=False, default="", help='adjust the Ibeta');
+    parser.add_argument('-Igamma', '--Igamma', type=str, required=False, default="", help='adjust the Igamma');
+    parser.add_argument('-Ilambda1', '--Ilambda1', type=str, required=False, default="", help='adjust the Ilambda1');
+    parser.add_argument('-Ilambda2', '--Ilambda2', type=str, required=False, default="", help='adjust the Ilambda2');
+    parser.add_argument('-Ilambda3', '--Ilambda3', type=str, required=False, default="", help='adjust the Ilambda3');
+    parser.add_argument('-Ilambda4', '--Ilambda4', type=str, required=False, default="", help='adjust the Ilambda4');
+
+    parser.add_argument('-Mlambda1', '--Mlambda1', type=str, required=False, default="", help='adjust the Mlambda1');
+    parser.add_argument('-Mlambda2', '--Mlambda2', type=str, required=False, default="", help='adjust the Mlambda2');
+    parser.add_argument('-Mlambda3', '--Mlambda3', type=str, required=False, default="", help='adjust the Mlambda3');
+    parser.add_argument('-Mlambda4', '--Mlambda4', type=str, required=False, default="", help='adjust the Mlambda4');
+    
     args = parser.parse_args();
 
     if (os.geteuid() != 0):
@@ -263,68 +278,193 @@ def main():
     ts_join="+".join(ts_name);
     fn_join="+".join(fnl);
     fr_join="+".join(frl);
-    base_dir_name = f"WebRTC-{timestamp}-[{ts_join}]";
+    base_dir_name = f"WebRTC-{timestamp}-[{ts_join}]-[Hyper:{args.hyper}]";
     print(f"Results save to \'{base_dir_name}\'");
     print();
     os.makedirs(base_dir_name,exist_ok=True);
     sub_dirs=[];
 
-    for net_i,now_net,now_tf in zip(network_name,network_type,trace_file):
-        for vs_i,now_vs in zip(vs_name, vs):
-            for ts_i in ts_name:
-                # if ts_i == 'RSFECStreamStableRate' :
-                #     fec_rate_list = args.fec_rate.split(',');
-                #     fec_num_list = args.fec_num.split(',');
-                #     for fr in fec_rate_list:
-                #         for fn in fec_num_list:
-                #             print_line(f" running [{vs_i}]-[{ts_i}]-[{net_i}]-[{fr}]-[{fn}] ")
-                #             sub_dir_name = f"{base_dir_name}/[{vs_i}]-[{ts_i}]-[{net_i}]-[{fr}]-[{fn}]";
-                #             sub_dirs.append(sub_dir_name);
-                #             os.makedirs(sub_dir_name, exist_ok=True);
-                #
-                #             # for motivation evaluation!
-                #             # curLr = now_net.split(",")[0].split("_")[0].split("P")[1];
-                #             # temp_fr = eval(curLr)/100*3;
-                #             temp_fr = 0.09;
-                #             run_WebRTC_single_exp_main(sip, args.port, now_vs, args.duration, args.interval,
-                #                                        args.bridge_interface, now_net, ts_i, sub_dir_name, now_tf,
-                #                                        args.epoch, args.executable_file, args.namespace, temp_fr, fn);
-                #
-                #             # run_WebRTC_single_exp_main(sip, args.port, now_vs, args.duration, args.interval,
-                #             #                            args.bridge_interface, now_net, ts_i, sub_dir_name, now_tf,
-                #             #                            args.epoch, args.executable_file, args.namespace, fr, fn);
-                # else:
-                #     print_line(f" running [{vs_i}]-[{ts_i}]-[{net_i}] ");
-                #     sub_dir_name=f"{base_dir_name}/[{vs_i}]-[{ts_i}]-[{net_i}]";
-                #     sub_dirs.append(sub_dir_name);
-                #     os.makedirs(sub_dir_name,exist_ok=True);
-                #     run_WebRTC_single_exp_main(sip, args.port, now_vs, args.duration, args.interval,
-                #                                args.bridge_interface, now_net, ts_i, sub_dir_name, now_tf,
-                #                                args.epoch, args.executable_file, args.namespace);
+    if (not args.hyper):
+        for net_i,now_net,now_tf in zip(network_name,network_type,trace_file):
+            for vs_i,now_vs in zip(vs_name, vs):
+                for ts_i in ts_name:
+                    # if ts_i == 'RSFECStreamStableRate' :
+                    #     fec_rate_list = args.fec_rate.split(',');
+                    #     fec_num_list = args.fec_num.split(',');
+                    #     for fr in fec_rate_list:
+                    #         for fn in fec_num_list:
+                    #             print_line(f" running [{vs_i}]-[{ts_i}]-[{net_i}]-[{fr}]-[{fn}] ")
+                    #             sub_dir_name = f"{base_dir_name}/[{vs_i}]-[{ts_i}]-[{net_i}]-[{fr}]-[{fn}]";
+                    #             sub_dirs.append(sub_dir_name);
+                    #             os.makedirs(sub_dir_name, exist_ok=True);
+                    #
+                    #             # for motivation evaluation!
+                    #             # curLr = now_net.split(",")[0].split("_")[0].split("P")[1];
+                    #             # temp_fr = eval(curLr)/100*3;
+                    #             temp_fr = 0.09;
+                    #             run_WebRTC_single_exp_main(sip, args.port, now_vs, args.duration, args.interval,
+                    #                                        args.bridge_interface, now_net, ts_i, sub_dir_name, now_tf,
+                    #                                        args.epoch, args.executable_file, args.namespace, temp_fr, fn);
+                    #
+                    #             # run_WebRTC_single_exp_main(sip, args.port, now_vs, args.duration, args.interval,
+                    #             #                            args.bridge_interface, now_net, ts_i, sub_dir_name, now_tf,
+                    #             #                            args.epoch, args.executable_file, args.namespace, fr, fn);
+                    # else:
+                    #     print_line(f" running [{vs_i}]-[{ts_i}]-[{net_i}] ");
+                    #     sub_dir_name=f"{base_dir_name}/[{vs_i}]-[{ts_i}]-[{net_i}]";
+                    #     sub_dirs.append(sub_dir_name);
+                    #     os.makedirs(sub_dir_name,exist_ok=True);
+                    #     run_WebRTC_single_exp_main(sip, args.port, now_vs, args.duration, args.interval,
+                    #                                args.bridge_interface, now_net, ts_i, sub_dir_name, now_tf,
+                    #                                args.epoch, args.executable_file, args.namespace);
 
-                if ts_i == 'RSFECStreamStableRate':
-                    for fr in [2]:
-                        trace_file_path = os.path.join("./trace_log", now_net.split(",")[0], now_tf.split(",")[0]);
-                        data = pd.read_csv(trace_file_path);
-                        temp_fr = np.mean(data['Loss rate (%)'].to_list())*fr/100;
-                        print_line(f" running [{vs_i}]-[{ts_i}{fr}]-[{net_i}] ");
-                        sub_dir_name = f"{base_dir_name}/[{vs_i}]-[{ts_i}{fr}]-[{net_i}]";
+                    if ts_i == 'RSFECStreamStableRate':
+                        for fr in [2]:
+                            trace_file_path = os.path.join("./trace_log", now_net.split(",")[0], now_tf.split(",")[0]);
+                            data = pd.read_csv(trace_file_path);
+                            temp_fr = np.mean(data['Loss rate (%)'].to_list())*fr/100;
+                            print_line(f" running [{vs_i}]-[{ts_i}{fr}]-[{net_i}] ");
+                            sub_dir_name = f"{base_dir_name}/[{vs_i}]-[{ts_i}{fr}]-[{net_i}]";
+                            sub_dirs.append(sub_dir_name);
+                            os.makedirs(sub_dir_name, exist_ok=True);
+                            run_WebRTC_single_exp_main(sip, args.port, now_vs, args.duration, args.interval,
+                                                    args.bridge_interface, now_net, ts_i, sub_dir_name, now_tf,
+                                                    args.epoch, args.executable_file, args.namespace, temp_fr, 1, "true", "true", "true", "true", False, "notuse", "notuse");
+                    else:
+                        temp_fr = 0.135;
+                        print_line(f" running [{vs_i}]-[{ts_i}]-[{net_i}] ");
+                        sub_dir_name = f"{base_dir_name}/[{vs_i}]-[{ts_i}]-[{net_i}]";
                         sub_dirs.append(sub_dir_name);
                         os.makedirs(sub_dir_name, exist_ok=True);
                         run_WebRTC_single_exp_main(sip, args.port, now_vs, args.duration, args.interval,
-                                                   args.bridge_interface, now_net, ts_i, sub_dir_name, now_tf,
-                                                   args.epoch, args.executable_file, args.namespace, temp_fr, 1);
-                else:
-                    temp_fr = 0.135;
-                    print_line(f" running [{vs_i}]-[{ts_i}]-[{net_i}] ");
-                    sub_dir_name = f"{base_dir_name}/[{vs_i}]-[{ts_i}]-[{net_i}]";
-                    sub_dirs.append(sub_dir_name);
-                    os.makedirs(sub_dir_name, exist_ok=True);
-                    run_WebRTC_single_exp_main(sip, args.port, now_vs, args.duration, args.interval,
-                                               args.bridge_interface, now_net, ts_i, sub_dir_name, now_tf,
-                                               args.epoch, args.executable_file, args.namespace, temp_fr, 1);
+                                                args.bridge_interface, now_net, ts_i, sub_dir_name, now_tf,
+                                                args.epoch, args.executable_file, args.namespace, temp_fr, 1, "true", "true", "true", "true", False, "notuse", "notuse");
+    
+    else:
+        for net_i,now_net,now_tf in zip(network_name,network_type,trace_file):
+            for vs_i,now_vs in zip(vs_name, vs):
+                for ts_i in ts_name:
+                    # adjust Ialpha:
+                    if (args.Ialpha != ""):
+                        for Ialpha in args.Ialpha.split(","):
+                            print_line(f" running [{vs_i}]-[{ts_i}]-[{net_i}]-[Ialpha:{Ialpha}]");
+                            sub_dir_name = f"{base_dir_name}/[{vs_i}]-[{ts_i}]-[{net_i}]-[Ialpha:{Ialpha}]";
+                            sub_dirs.append(sub_dir_name);
+                            os.makedirs(sub_dir_name, exist_ok=True);
+                            run_WebRTC_single_exp_main(sip, args.port, now_vs, args.duration, args.interval,
+                                                        args.bridge_interface, now_net, ts_i, sub_dir_name, now_tf,
+                                                        args.epoch, args.executable_file, args.namespace, temp_fr, 1, "true", "false", "false", "false", True, "Ialpha", Ialpha);
+                    
+                    # adjust Ibeta:
+                    if (args.Ibeta != ""):
+                        for Ibeta in args.Ibeta.split(","):
+                            print_line(f" running [{vs_i}]-[{ts_i}]-[{net_i}]-[Ibeta:{Ibeta}]");
+                            sub_dir_name = f"{base_dir_name}/[{vs_i}]-[{ts_i}]-[{net_i}]-[Ibeta:{Ibeta}]";
+                            sub_dirs.append(sub_dir_name);
+                            os.makedirs(sub_dir_name, exist_ok=True);
+                            run_WebRTC_single_exp_main(sip, args.port, now_vs, args.duration, args.interval,
+                                                        args.bridge_interface, now_net, ts_i, sub_dir_name, now_tf,
+                                                        args.epoch, args.executable_file, args.namespace, temp_fr, 1, "true", "false", "false", "false", True, "Ibeta", Ibeta);
 
+                    # adjust Igamma:
+                    if (args.Igamma != ""):
+                        for Igamma in args.Igamma.split(","):
+                            print_line(f" running [{vs_i}]-[{ts_i}]-[{net_i}]-[Igamma:{Igamma}]");
+                            sub_dir_name = f"{base_dir_name}/[{vs_i}]-[{ts_i}]-[{net_i}]-[Igamma:{Igamma}]";
+                            sub_dirs.append(sub_dir_name);
+                            os.makedirs(sub_dir_name, exist_ok=True);
+                            run_WebRTC_single_exp_main(sip, args.port, now_vs, args.duration, args.interval,
+                                                        args.bridge_interface, now_net, ts_i, sub_dir_name, now_tf,
+                                                        args.epoch, args.executable_file, args.namespace, temp_fr, 1, "true", "false", "false", "false", True, "Igamma", Igamma);
 
+                    # adjust Ilambda1:
+                    if (args.Ilambda1 != ""):
+                        for Ilambda1 in args.Ilambda1.split(","):
+                            print_line(f" running [{vs_i}]-[{ts_i}]-[{net_i}]-[Ilambda1:{Ilambda1}]");
+                            sub_dir_name = f"{base_dir_name}/[{vs_i}]-[{ts_i}]-[{net_i}]-[Ilambda1:{Ilambda1}]";
+                            sub_dirs.append(sub_dir_name);
+                            os.makedirs(sub_dir_name, exist_ok=True);
+                            run_WebRTC_single_exp_main(sip, args.port, now_vs, args.duration, args.interval,
+                                                        args.bridge_interface, now_net, ts_i, sub_dir_name, now_tf,
+                                                        args.epoch, args.executable_file, args.namespace, temp_fr, 1, "true", "false", "false", "false", True, "Ilambda1", Ilambda1);
+
+                    # adjust Ilambda2:
+                    if (args.Ilambda2 != ""):
+                        for Ilambda2 in args.Ilambda2.split(","):
+                            print_line(f" running [{vs_i}]-[{ts_i}]-[{net_i}]-[Ilambda2:{Ilambda2}]");
+                            sub_dir_name = f"{base_dir_name}/[{vs_i}]-[{ts_i}]-[{net_i}]-[Ilambda2:{Ilambda2}]";
+                            sub_dirs.append(sub_dir_name);
+                            os.makedirs(sub_dir_name, exist_ok=True);
+                            run_WebRTC_single_exp_main(sip, args.port, now_vs, args.duration, args.interval,
+                                                        args.bridge_interface, now_net, ts_i, sub_dir_name, now_tf,
+                                                        args.epoch, args.executable_file, args.namespace, temp_fr, 1, "true", "false", "false", "false", True, "Ilambda2", Ilambda2);
+
+                    # adjust Ilambda3:
+                    if (args.Ilambda3 != ""):
+                        for Ilambda3 in args.Ilambda3.split(","):
+                            print_line(f" running [{vs_i}]-[{ts_i}]-[{net_i}]-[Ilambda3:{Ilambda3}]");
+                            sub_dir_name = f"{base_dir_name}/[{vs_i}]-[{ts_i}]-[{net_i}]-[Ilambda3:{Ilambda3}]";
+                            sub_dirs.append(sub_dir_name);
+                            os.makedirs(sub_dir_name, exist_ok=True);
+                            run_WebRTC_single_exp_main(sip, args.port, now_vs, args.duration, args.interval,
+                                                        args.bridge_interface, now_net, ts_i, sub_dir_name, now_tf,
+                                                        args.epoch, args.executable_file, args.namespace, temp_fr, 1, "true", "false", "false", "false", True, "Ilambda3", Ilambda3);
+                    
+                    # adjust Ilambda4:
+                    if (args.Ilambda4 != ""):
+                        for Ilambda4 in args.Ilambda4.split(","):
+                            print_line(f" running [{vs_i}]-[{ts_i}]-[{net_i}]-[Ilambda4:{Ilambda4}]");
+                            sub_dir_name = f"{base_dir_name}/[{vs_i}]-[{ts_i}]-[{net_i}]-[Ilambda4:{Ilambda4}]";
+                            sub_dirs.append(sub_dir_name);
+                            os.makedirs(sub_dir_name, exist_ok=True);
+                            run_WebRTC_single_exp_main(sip, args.port, now_vs, args.duration, args.interval,
+                                                        args.bridge_interface, now_net, ts_i, sub_dir_name, now_tf,
+                                                        args.epoch, args.executable_file, args.namespace, temp_fr, 1, "true", "false", "false", "false", True, "Ilambda4", Ilambda4);
+                    
+                    # adjust Mlambda1:
+                    if (args.Mlambda1 != ""):
+                        for Mlambda1 in args.Mlambda1.split(","):
+                            print_line(f" running [{vs_i}]-[{ts_i}]-[{net_i}]-[Mlambda1:{Mlambda1}]");
+                            sub_dir_name = f"{base_dir_name}/[{vs_i}]-[{ts_i}]-[{net_i}]-[Mlambda1:{Mlambda1}]";
+                            sub_dirs.append(sub_dir_name);
+                            os.makedirs(sub_dir_name, exist_ok=True);
+                            run_WebRTC_single_exp_main(sip, args.port, now_vs, args.duration, args.interval,
+                                                        args.bridge_interface, now_net, ts_i, sub_dir_name, now_tf,
+                                                        args.epoch, args.executable_file, args.namespace, temp_fr, 1, "false", "false", "true", "false", True, "Mlambda1", Mlambda1);
+
+                    # adjust Mlambda2:
+                    if (args.Mlambda2 != ""):
+                        for Mlambda2 in args.Mlambda2.split(","):
+                            print_line(f" running [{vs_i}]-[{ts_i}]-[{net_i}]-[Mlambda2:{Mlambda2}]");
+                            sub_dir_name = f"{base_dir_name}/[{vs_i}]-[{ts_i}]-[{net_i}]-[Mlambda2:{Mlambda2}]";
+                            sub_dirs.append(sub_dir_name);
+                            os.makedirs(sub_dir_name, exist_ok=True);
+                            run_WebRTC_single_exp_main(sip, args.port, now_vs, args.duration, args.interval,
+                                                        args.bridge_interface, now_net, ts_i, sub_dir_name, now_tf,
+                                                        args.epoch, args.executable_file, args.namespace, temp_fr, 1, "false", "false", "true", "false", True, "Mlambda2", Mlambda2);
+
+                    # adjust Mlambda3:
+                    if (args.Mlambda3 != ""):
+                        for Mlambda3 in args.Mlambda3.split(","):
+                            print_line(f" running [{vs_i}]-[{ts_i}]-[{net_i}]-[Mlambda3:{Mlambda3}]");
+                            sub_dir_name = f"{base_dir_name}/[{vs_i}]-[{ts_i}]-[{net_i}]-[Mlambda3:{Mlambda3}]";
+                            sub_dirs.append(sub_dir_name);
+                            os.makedirs(sub_dir_name, exist_ok=True);
+                            run_WebRTC_single_exp_main(sip, args.port, now_vs, args.duration, args.interval,
+                                                        args.bridge_interface, now_net, ts_i, sub_dir_name, now_tf,
+                                                        args.epoch, args.executable_file, args.namespace, temp_fr, 1, "false", "false", "true", "false", True, "Mlambda3", Mlambda3);
+
+                    # adjust Mlambda4:
+                    if (args.Mlambda4 != ""):
+                        for Mlambda4 in args.Mlambda4.split(","):
+                            print_line(f" running [{vs_i}]-[{ts_i}]-[{net_i}]-[Mlambda4:{Mlambda4}]");
+                            sub_dir_name = f"{base_dir_name}/[{vs_i}]-[{ts_i}]-[{net_i}]-[Mlambda4:{Mlambda4}]";
+                            sub_dirs.append(sub_dir_name);
+                            os.makedirs(sub_dir_name, exist_ok=True);
+                            run_WebRTC_single_exp_main(sip, args.port, now_vs, args.duration, args.interval,
+                                                        args.bridge_interface, now_net, ts_i, sub_dir_name, now_tf,
+                                                        args.epoch, args.executable_file, args.namespace, temp_fr, 1, "false", "false", "true", "false", True, "Mlambda4", Mlambda4);
+                    
     # all_sub_dirs = ",".join(sub_dirs);
     # df_res_dir=f"{base_dir_name}/result.csv";
     # print_line(f" runing result dataFrame calculate! ");

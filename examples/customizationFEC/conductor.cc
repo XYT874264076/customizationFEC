@@ -482,7 +482,8 @@ class FECStatsObserver : virtual public webrtc::RTCStatsCollectorCallback {
             //   cur_reward = transV::calculate_Ireward(I_rewards,1.875,1,0.5,0.8,0.05,0.05,0.1);
             // }
 
-            double cur_reward = transV::calculate_Ireward(I_rewards,1,1,0.8,0.7,0.1,0.1,0.1);
+            double cur_reward = transV::calculate_Ireward(I_rewards,inputV::Params::I_alpha,inputV::Params::I_beta,inputV::Params::Params::I_gamma,
+                                                          inputV::Params::I_lambda1,inputV::Params::I_lambda2,inputV::Params::I_lambda3,inputV::Params::I_lambda4);
             cur_IReward = cur_reward;
             cur_baseline_Ireward = cur_reward - transV::Params::baseline_Ireward;
             auto rl_model = IModuleRLWrapper::get_instance();
@@ -503,6 +504,14 @@ class FECStatsObserver : virtual public webrtc::RTCStatsCollectorCallback {
             }
             if (inputV::Params::ifTrainI && transV::Params::I<=transV::Params::L && transV::Params::I>=1) {
               rl_model.train_step();
+
+              //Write file!
+              auto now = std::chrono::system_clock::now();
+              auto milliseconds_since_epoch = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
+              std::ofstream ITrain(inputV::Params::output+"ITrain.csv",std::ios::app);
+              ITrain << milliseconds_since_epoch << "," << transV::Params::I_train_steps << "," << cur_reward << "\n";
+              ITrain.close();
+              transV::Params::I_train_steps += 1;
             }
             if (transV::Params::I > transV::Params::L) transV::Params::I = transV::Params::L;
             if (transV::Params::I < 1) transV::Params::I = 1;
@@ -540,7 +549,7 @@ class FECStatsObserver : virtual public webrtc::RTCStatsCollectorCallback {
       if (inputV::Params::type == inputV::ExpType::RLSRSFEC || inputV::Params::type == inputV::ExpType::SwiftFECAblI || inputV::Params::type == inputV::ExpType::SwiftFECAblL) {
         if (transV::Params::do_RL_times>=5 && transV::checkMReward(M_rewards) && transV::checkMState(M_states)) {
             std::vector<double> cur_state = transV::MState_to_vector(M_states);
-            double cur_reward = transV::calculate_Mreward(M_rewards, 0.5 ,0.3, 0.1, 0.1);
+            double cur_reward = transV::calculate_Mreward(M_rewards, inputV::Params::M_lambda1 ,inputV::Params::M_lambda2, inputV::Params::M_lambda3, inputV::Params::M_lambda4);
             cur_MReward = cur_reward;
             cur_baseline_Mreward = cur_reward - transV::Params::baseline_Mreward;
             std::cout<<"Get MModule Instance?"<<std::endl;
@@ -563,6 +572,14 @@ class FECStatsObserver : virtual public webrtc::RTCStatsCollectorCallback {
             transV::Params::baseline_Mreward = transV::Params::baseline_Mreward * 0.9 + cur_reward * 0.1;
             if (inputV::Params::ifTrainM) {
               rl_model.train_step();
+
+              //Write file!
+              auto now = std::chrono::system_clock::now();
+              auto milliseconds_since_epoch = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
+              std::ofstream MTrain(inputV::Params::output+"MTrain.csv",std::ios::app);
+              MTrain << milliseconds_since_epoch << "," << transV::Params::M_train_steps << "," << cur_reward << "\n";
+              MTrain.close();
+              transV::Params::M_train_steps += 1;
             }
         }
         else {

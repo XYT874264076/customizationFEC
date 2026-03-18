@@ -2,6 +2,9 @@
 #include "examples/customizationFEC/IModule/IModulePyWrapper.h"
 #include "examples/customizationFEC/Params.h"
 
+#include <sstream>
+#include <string>
+
 std::unique_ptr<IModuleRLWrapper> IModuleRLWrapper::instance = nullptr;
 
 IModuleRLWrapper::IModuleRLWrapper() {
@@ -14,13 +17,27 @@ IModuleRLWrapper::IModuleRLWrapper() {
     // sys.attr("path").attr("insert")(0, "/home/ubuntu/Desktop/WebRTC_SwiftFEC/src/examples/customizationFEC/"); // Add the Python module to search the path
     sys.attr("path").attr("insert")(0, "/home/data/WebRTC_SwiftFEC/webrtc-checkout/src/examples/customizationFEC/"); // Add the Python module to search the path
     py::module_ rl_model = py::module_::import("IModule.modelV3");
+    // std::string model_path = std::format("../examples/customizationFEC/IModule/checkpoints/model_weights_{}_{}_{}_{}_{}_{}_{}_Test.pth", inputV::Params::I_alpha, inputV::Params::I_beta, inputV::Params::I_gamma, inputV::Params::I_lambda1, inputV::Params::I_lambda2, inputV::Params::I_lambda3, inputV::Params::I_lambda4);
+    
+    std::stringstream ss;
+    ss << "../examples/customizationFEC/IModule/checkpoints/model_weights_"
+        << inputV::Params::I_alpha << "_"
+        << inputV::Params::I_beta << "_" 
+        << inputV::Params::I_gamma << "_"
+        << inputV::Params::I_lambda1 << "_"
+        << inputV::Params::I_lambda2 << "_"
+        << inputV::Params::I_lambda3 << "_"
+        << inputV::Params::I_lambda4 << "_Test.pth";
+
+    std::string model_path = ss.str();
+    
     if (inputV::Params::ifSaveI) {
         // rl_module = rl_model.attr("RLModule")("examples/customizationFEC/IModule/checkpoints/model_weightsUNV2_break.pth",true); // Initialize the Python class
-        rl_module = rl_model.attr("RLModule")("../examples/customizationFEC/IModule/checkpoints/model_weights_NRV2.pth",true); 
+        rl_module = rl_model.attr("RLModule")(model_path,true); 
     }
     else {
         // rl_module = rl_model.attr("RLModule")("examples/customizationFEC/IModule/checkpoints/model_weightsUNV2_break.pth",false); // Initialize the Python class
-        rl_module = rl_model.attr("RLModule")("../examples/customizationFEC/IModule/checkpoints/model_weights_NRV2.pth",false); 
+        rl_module = rl_model.attr("RLModule")(model_path,false); 
     }
 }
 

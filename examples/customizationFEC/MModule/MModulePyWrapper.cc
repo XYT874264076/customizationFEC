@@ -2,6 +2,9 @@
 #include "examples/customizationFEC/MModule/MModulePyWrapper.h"
 #include "examples/customizationFEC/Params.h"
 
+#include <sstream>
+#include <string>
+
 std::unique_ptr<MModuleRLWrapper> MModuleRLWrapper::instance = nullptr;
 
 MModuleRLWrapper::MModuleRLWrapper() {
@@ -13,13 +16,25 @@ MModuleRLWrapper::MModuleRLWrapper() {
     // sys.attr("path").attr("insert")(0, "/home/ubuntu/Desktop/WebRTC_SwiftFEC/src/examples/customizationFEC/"); // Add the Python module to search the path
     sys.attr("path").attr("insert")(0, "/home/data/WebRTC_SwiftFEC/webrtc-checkout/src/examples/customizationFEC/"); // Add the Python module to search the path
     py::module_ rl_model = py::module_::import("MModule.modelV3");
+
+    // std::string model_path = std::format("../examples/customizationFEC/MModule/checkpoints/model_weights_{}_{}_{}_{}_Test.pth", inputV::Params::M_lambda1, inputV::Params::M_lambda2, inputV::Params::M_lambda3, inputV::Params::M_lambda4);
+    
+    std::stringstream ss;
+    ss << "../examples/customizationFEC/MModule/checkpoints/model_weights_"
+        << inputV::Params::M_lambda1 << "_"
+        << inputV::Params::M_lambda2 << "_"
+        << inputV::Params::M_lambda3 << "_"
+        << inputV::Params::M_lambda4 << "_Test.pth";
+
+    std::string model_path = ss.str();
+
     if (inputV::Params::ifSaveM) {
         // rl_module = rl_model.attr("RLModule")("examples/customizationFEC/MModule/checkpoints/model_weightsV15.pth",true); // Initialize the Python class
-        rl_module = rl_model.attr("RLModule")("../examples/customizationFEC/MModule/checkpoints/model_weights_NRV2.pth",true);
+        rl_module = rl_model.attr("RLModule")(model_path,true);
     }
     else {
         // rl_module = rl_model.attr("RLModule")("examples/customizationFEC/MModule/checkpoints/model_weightsV15.pth",false); // Initialize the Python class
-        rl_module = rl_model.attr("RLModule")("../examples/customizationFEC/MModule/checkpoints/model_weights_NRV2.pth",false);
+        rl_module = rl_model.attr("RLModule")(model_path,false);
     }
 }
 

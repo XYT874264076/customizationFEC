@@ -518,6 +518,32 @@ int init_output_file(){
     }
   }
 
+  if (inputV::Params::ifTrainI) {
+    path = inputV::Params::output+"ITrain.csv";
+    std::ofstream file18(path);
+    if (file18.is_open()) {
+      file18<<"timestamp,steps,reward\n";
+      file18.close();
+    }
+    else {
+      std::cerr << "Error opening file "<<path<<std::endl;
+      return -1;
+    }
+  }
+
+  if (inputV::Params::ifTrainM) {
+    path = inputV::Params::output+"MTrain.csv";
+    std::ofstream file19(path);
+    if (file19.is_open()) {
+      file19<<"timestamp,steps,reward\n";
+      file19.close();
+    }
+    else {
+      std::cerr << "Error opening file "<<path<<std::endl;
+      return -1;
+    }
+  }
+
   // path = inputV::Params::output+"frame_receiver.csv";
   // std::ofstream file7(path);
   // if (file7.is_open()){

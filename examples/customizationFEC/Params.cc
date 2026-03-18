@@ -16,6 +16,19 @@ namespace inputV {
     bool Params::ifSaveM;
     int32_t Params::default_L;
 
+    double Params::I_alpha;
+    double Params::I_beta;
+    double Params::I_gamma;
+    double Params::I_lambda1;
+    double Params::I_lambda2;
+    double Params::I_lambda3;
+    double Params::I_lambda4;
+
+    double Params::M_lambda1;
+    double Params::M_lambda2;
+    double Params::M_lambda3;
+    double Params::M_lambda4;
+
     // Tambur parameters
     uint16_t Params::tambur_tau;
     int Params::tambur_stripe_size;
@@ -32,6 +45,9 @@ namespace transV {
     uint32_t Params::L;
     uint32_t Params::I;
     uint32_t Params::M;
+
+    uint32_t Params::I_train_steps = 0;
+    uint32_t Params::M_train_steps = 0;
 
     // Used to calculate current s_pck
     int32_t Params::last_packets_sent = 0;

@@ -15,14 +15,25 @@ def run_trace_replay(trace_file, net_type, net_device, duration, trace_log_file)
     with open(trace_log_file, "a") as f:
         f.write(result.stdout);
 
-def run_WebRTC_peer(namespace, exec_file, connect_to, port, playVideo, duration, interval, output_dir, exp_type, output_std, output_log, fec_rate, fec_num):
-    cmd = f"xvfb-run -a ip netns exec {namespace} bash -c 'export PULSE_SERVER=unix:/tmp/pulse-native; \
-            {exec_file} --playVideo {playVideo} --duration {duration} --interval {interval} --output {output_dir} \
-            --type {exp_type} --connect {connect_to} --port {port} --FECRate {fec_rate} --FECNum {fec_num} --ifTrainI true --ifSaveI true --ifTrainM true --ifSaveM true'";
+def run_WebRTC_peer(namespace, exec_file, connect_to, port, playVideo, duration, interval, output_dir, exp_type, output_std, output_log, fec_rate, fec_num, ifTrainI, ifSaveI, ifTrainM, ifSaveM, ifHyper, Hyper_name, Hyper_value):
+    if (not ifHyper):
+        cmd = f"xvfb-run -a ip netns exec {namespace} bash -c 'export PULSE_SERVER=unix:/tmp/pulse-native; \
+                {exec_file} --playVideo {playVideo} --duration {duration} --interval {interval} --output {output_dir} \
+                --type {exp_type} --connect {connect_to} --port {port} --FECRate {fec_rate} --FECNum {fec_num} --ifTrainI {ifTrainI} --ifSaveI {ifSaveI} --ifTrainM {ifTrainM} --ifSaveM {ifSaveM}'";
+    else:
+        cmd = f"xvfb-run -a ip netns exec {namespace} bash -c 'export PULSE_SERVER=unix:/tmp/pulse-native; \
+                {exec_file} --playVideo {playVideo} --duration {duration} --interval {interval} --output {output_dir} \
+                --type {exp_type} --connect {connect_to} --port {port} --FECRate {fec_rate} --FECNum {fec_num} --ifTrainI {ifTrainI} --ifSaveI {ifSaveI} --ifTrainM {ifTrainM} --ifSaveM {ifSaveM} --{Hyper_name} {Hyper_value}'";
 
-    # cmd = f"ip netns exec {namespace} bash -c 'export PULSE_SERVER=unix:/run/user/1000/pulse/native; export PULSE_COOKIE=/run/user/1000/pulse/cookie; \
-    #         {exec_file} --playVideo {playVideo} --duration {duration} --interval {interval} --output {output_dir} \
-    #         --type {exp_type} --connect {connect_to} --port {port} --FECRate {fec_rate} --FECNum {fec_num} --ifTrainI true --ifSaveI true --ifTrainM true --ifSaveM true'";
+    # if (not ifHyper):
+    #     cmd = f"ip netns exec {namespace} bash -c 'export PULSE_SERVER=unix:/run/user/1000/pulse/native; export PULSE_COOKIE=/run/user/1000/pulse/cookie; \
+    #             {exec_file} --playVideo {playVideo} --duration {duration} --interval {interval} --output {output_dir} \
+    #             --type {exp_type} --connect {connect_to} --port {port} --FECRate {fec_rate} --FECNum {fec_num} --ifTrainI {ifTrainI} --ifSaveI {ifSaveI} --ifTrainM {ifTrainM} --ifSaveM {ifSaveM}'";
+    # else:
+    #     cmd = f"ip netns exec {namespace} bash -c 'export PULSE_SERVER=unix:/run/user/1000/pulse/native; export PULSE_COOKIE=/run/user/1000/pulse/cookie; \
+    #             {exec_file} --playVideo {playVideo} --duration {duration} --interval {interval} --output {output_dir} \
+    #             --type {exp_type} --connect {connect_to} --port {port} --FECRate {fec_rate} --FECNum {fec_num} --ifTrainI {ifTrainI} --ifSaveI {ifSaveI} --ifTrainM {ifTrainM} --ifSaveM {ifSaveM} --{Hyper_name} {Hyper_value}'";
+
 
     print(cmd);
     result=subprocess.run(cmd, shell=True, capture_output=True, text=True);
@@ -95,6 +106,16 @@ def main():
     parser.add_argument('-ns', '--namespace', type=str, required=False, default='client1,client2', help='The namespace for each peers, split with ,');
     parser.add_argument('-fr', '--fec-rate', type=str, required=False, default='0.16', help='The FECRate, split with ,');
     parser.add_argument('-fn', '--fec-num', type=str, required=False, default='2', help='The FECNum, split with ,');
+
+    parser.add_argument('-iIt','--if-train-i', type=str, required=False, default="true", help='if train the i model');
+    parser.add_argument('-iSt','--if-save-i', type=str, required=False, default="true", help='if save the i model');
+    parser.add_argument('-mIt','--if-train-m', type=str, required=False, default="true", help='if train the m model');
+    parser.add_argument('-mSt','--if-save-m', type=str, required=False, default="true", help='if save the m model');
+
+    parser.add_argument('-hy', '--hyper', type=bool, required=False, default=False, help='if do the hyper paramter experiment');
+    parser.add_argument('-ad', '--adjust', type=str, required=False, default="", help='adjust the hyper name');
+    parser.add_argument('-adv', '--adjustValue', type=str, required=False, default="", help='adjust the hyper value');
+
     args = parser.parse_args();
 
     if (os.geteuid() != 0):
@@ -171,12 +192,12 @@ def main():
         namespaceList=args.namespace.split(",");
         run_WebRTC_peer_thread1 = threading.Thread(target=run_WebRTC_peer,
                                   args=(namespaceList[0], args.executable_file, args.connect_to, args.port, playVideoList[0],
-                                        args.duration-10, args.interval, peer1_dir, args.exp_type, peer1_output_std, peer1_output_log, args.fec_rate, args.fec_num));
+                                        args.duration-10, args.interval, peer1_dir, args.exp_type, peer1_output_std, peer1_output_log, args.fec_rate, args.fec_num, args.if_train_i, args.if_save_i, args.if_train_m, args.if_save_m, args.hyper, args.adjust, args.adjustValue));
         run_WebRTC_peer_thread1.start();
 
         run_WebRTC_peer_thread2 = threading.Thread(target=run_WebRTC_peer,
                                   args=(namespaceList[1], args.executable_file, args.connect_to, args.port, playVideoList[1],
-                                        args.duration-10, args.interval, peer2_dir, args.exp_type, peer2_output_std, peer2_output_log, args.fec_rate, args.fec_num));
+                                        args.duration-10, args.interval, peer2_dir, args.exp_type, peer2_output_std, peer2_output_log, args.fec_rate, args.fec_num, args.if_train_i, args.if_save_i, args.if_train_m, args.if_save_m, args.hyper, args.adjust, args.adjustValue));
         run_WebRTC_peer_thread2.start();
 
         # wait for network trace replay finish!

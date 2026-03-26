@@ -178,7 +178,7 @@ def main():
     parser.add_argument('-p', '--port', type=str, required=False, default=3000, help='Signal server port');
     parser.add_argument('-vs', '--playVideos', type=str, required=False, default='/home/ubuntu/Desktop/MyFECExp/testVideo/testVideo1.mp4,/home/ubuntu/Desktop/MyFECExp/testVideo/testVideo2.mp4', help='Video contents transmitted by two peers! For two peers, split with ,. For each experience, split with ;')
     # parser.add_argument('-d', '--duration', type=int, required=False, default=400, help='Duration of the network simulation');
-    parser.add_argument('-d', '--duration', type=int, required=False, default=620, help='Duration of the network simulation');
+    parser.add_argument('-d', '--duration', type=int, required=False, default=120, help='Duration of the network simulation');
     parser.add_argument('-i', '--interval', type=int, required=False, default=500, help='The interval between each json data collection');
     parser.add_argument('-nsi', '--namespace-interface', type=str, required=False, default='veth1,veth2');
     parser.add_argument('-bri', '--bridge-interface', type=str, required=False, default="br-veth1,br-veth2");
@@ -187,15 +187,16 @@ def main():
     # parser.add_argument('-net', '--network-type', type=str, required=False, default='TestLossP2_1M_50MS,TestLossP2_1M_50MS;TestLossP4_1M_50MS,TestLossP4_1M_50MS;TestLossP6_1M_50MS,TestLossP6_1M_50MS;TestLossP8_1M_50MS,TestLossP8_1M_50MS;TestLossP10_1M_50MS,TestLossP10_1M_50MS', help='Type of the network environments for two peers. For each peers, split with ,. For each experience, split with ;');
     # parser.add_argument('-net', '--network-type', type=str, required=False, default='TestLossP10_1M_50MS,TestLossP10_1M_50MS;UnStableBTW,UnStableBTW', help='Type of the network environments for two peers. For each peers, split with ,. For each experience, split with ;');
     # parser.add_argument('-net', '--network-type', type=str, required=False, default='dense_indoor,dense_indoor;walking,walking;driving,driving;high_speed,high_speed;LTE_2025,LTE_2025;NR_2025,NR_2025', help='Type of the network environments for two peers. For each peers, split with ,. For each experience, split with ;');
-    parser.add_argument('-net', '--network-type', type=str, required=False, default='UnStable1M,UnStable1M', help='Type of the network environments for two peers. For each peers, split with ,. For each experience, split with ;');
+    parser.add_argument('-net', '--network-type', type=str, required=False, default='TestLossP2_1M_50MS,TestLossP2_1M_50MS;TestLossP4_1M_50MS,TestLossP4_1M_50MS;TestLossP6_1M_50MS,TestLossP6_1M_50MS;TestLossP8_1M_50MS,TestLossP8_1M_50MS;TestLossP10_1M_50MS,TestLossP10_1M_50MS', help='Type of the network environments for two peers. For each peers, split with ,. For each experience, split with ;');
     # parser.add_argument('-net', '--network-type', type=str, required=False, default='driving,driving;high_speed,high_speed', help='Type of the network environments for two peers. For each peers, split with ,. For each experience, split with ;');
     # parser.add_argument('-ts', '--exp-types', type=str, required=False, default='WebRTCSource;RSFECBlock;RSFECStreamStableRate;FECClose', help='Type of the experience types, split with ;');
-    parser.add_argument('-ts', '--exp-types', type=str, required=False, default='RLSRSFEC', help='Type of the experience types, split with ;');
+    parser.add_argument('-ts', '--exp-types', type=str, required=False, default='WebRTCSource;RSFECBlock;RSFECStreamStableRate;TamburFEC;RLSRSFEC', help='Type of the experience types, split with ;');
+    # parser.add_argument('-ts', '--exp-types', type=str, required=False, default='TamburFEC', help='Type of the experience types, split with ;');
     # parser.add_argument('-ts', '--exp-types', type=str, required=False, default='WebRTCSource;RSFECBlock;RSFECStreamStableRate', help='Type of the experience types, split with ;');
     parser.add_argument('-f', '--traceFile', type=str, required=False, default='trace.csv,trace.csv;trace.csv,trace.csv;trace.csv,trace.csv;trace.csv,trace.csv;trace.csv,trace.csv;trace.csv,trace.csv', help='Trace file for network simulation for each peers. For each peers, split with ,. For each experience, split with ;');
     # parser.add_argument('-f', '--traceFile', type=str, required=False, default='trace.csv,trace.csv', help='Trace file for network simulation for each peers. For each peers, split with ,. For each experience, split with ;');
 
-    parser.add_argument('-n', '--epoch', type=int, required=False, default=1, help='Number of experiment groups(1<=epoch<=10)');
+    parser.add_argument('-n', '--epoch', type=int, required=False, default=10, help='Number of experiment groups(1<=epoch<=100)');
     parser.add_argument('-exe', '--executable-file', type=str, required=False, default='../out/customizationFEC/customizationFEC' ,help='executable files path, that is MyFECExp file path!');
     parser.add_argument('-ns', '--namespace', type=str, required=False, default='client1,client2', help='The namespace for each peers, split with ,');
     # parser.add_argument('-fr', '--fec-rate', type=str, required=False, default='0.1,0.12,0.14,0.16,0.18,0.2,0.22,0.24', help='The FECRate, split with ,');
@@ -288,36 +289,6 @@ def main():
         for net_i,now_net,now_tf in zip(network_name,network_type,trace_file):
             for vs_i,now_vs in zip(vs_name, vs):
                 for ts_i in ts_name:
-                    # if ts_i == 'RSFECStreamStableRate' :
-                    #     fec_rate_list = args.fec_rate.split(',');
-                    #     fec_num_list = args.fec_num.split(',');
-                    #     for fr in fec_rate_list:
-                    #         for fn in fec_num_list:
-                    #             print_line(f" running [{vs_i}]-[{ts_i}]-[{net_i}]-[{fr}]-[{fn}] ")
-                    #             sub_dir_name = f"{base_dir_name}/[{vs_i}]-[{ts_i}]-[{net_i}]-[{fr}]-[{fn}]";
-                    #             sub_dirs.append(sub_dir_name);
-                    #             os.makedirs(sub_dir_name, exist_ok=True);
-                    #
-                    #             # for motivation evaluation!
-                    #             # curLr = now_net.split(",")[0].split("_")[0].split("P")[1];
-                    #             # temp_fr = eval(curLr)/100*3;
-                    #             temp_fr = 0.09;
-                    #             run_WebRTC_single_exp_main(sip, args.port, now_vs, args.duration, args.interval,
-                    #                                        args.bridge_interface, now_net, ts_i, sub_dir_name, now_tf,
-                    #                                        args.epoch, args.executable_file, args.namespace, temp_fr, fn);
-                    #
-                    #             # run_WebRTC_single_exp_main(sip, args.port, now_vs, args.duration, args.interval,
-                    #             #                            args.bridge_interface, now_net, ts_i, sub_dir_name, now_tf,
-                    #             #                            args.epoch, args.executable_file, args.namespace, fr, fn);
-                    # else:
-                    #     print_line(f" running [{vs_i}]-[{ts_i}]-[{net_i}] ");
-                    #     sub_dir_name=f"{base_dir_name}/[{vs_i}]-[{ts_i}]-[{net_i}]";
-                    #     sub_dirs.append(sub_dir_name);
-                    #     os.makedirs(sub_dir_name,exist_ok=True);
-                    #     run_WebRTC_single_exp_main(sip, args.port, now_vs, args.duration, args.interval,
-                    #                                args.bridge_interface, now_net, ts_i, sub_dir_name, now_tf,
-                    #                                args.epoch, args.executable_file, args.namespace);
-
                     if ts_i == 'RSFECStreamStableRate':
                         for fr in [2]:
                             trace_file_path = os.path.join("./trace_log", now_net.split(",")[0], now_tf.split(",")[0]);

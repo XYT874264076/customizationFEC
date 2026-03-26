@@ -159,13 +159,14 @@ vector<FECDatagram> FrameGenerator::generate_frame_pkts(uint64_t frame_size, uin
   auto encode_fec_end = std::chrono::steady_clock::now();
   int64_t encode_duration = std::chrono::duration_cast<std::chrono::microseconds>(encode_fec_end - encode_fec_start).count();
   uint32_t encode_size = data_pkts.size();
+  uint32_t parity_size = parity_pkts.size();
   uint32_t frame_num = frame_num_;
 
   //Write file!
   auto now = std::chrono::system_clock::now();
   auto milliseconds_since_epoch = std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count();
   std::ofstream encode_file(inputV::Params::output+"encode_duration.csv",std::ios::app);
-  encode_file<<milliseconds_since_epoch<<","<<frame_num<<","<<encode_duration<<","<<encode_size<<std::endl;
+  encode_file<<milliseconds_since_epoch<<","<<frame_num<<","<<encode_duration<<","<<data_pkts.at(0).payload.size()<<","<<encode_size<<","<<parity_size<<std::endl;
   encode_file.close();
   
   // printf("\t\t\t generate_frame_pkts: data_pkts.size() = %lu, parity_pkts.size() = %lu\n", data_pkts.size(), parity_pkts.size());

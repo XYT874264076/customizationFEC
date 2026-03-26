@@ -429,7 +429,7 @@ int init_output_file(){
   path = inputV::Params::output+"encode_duration.csv";
   std::ofstream file13(path);
   if (file13.is_open()){
-    file13<<"timestamp,frame_num,encode_duration,encode_size\n";
+    file13<<"timestamp,frame_num,encode_duration,packet_size,dataPacket_size,parityPacket_size\n";
     file13.close();
   }
   else {
